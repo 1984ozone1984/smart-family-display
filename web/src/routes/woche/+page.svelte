@@ -5,6 +5,7 @@
 	import DayNav from '#lib/components/DayNav.svelte';
 	import EventDialog from '#lib/components/EventDialog.svelte';
 	import EventItem from '#lib/components/EventItem.svelte';
+	import { longpress } from '#lib/longpress.ts';
 
 	let week = $state(startOfWeek(new Date()));
 	let dialog = $state<{ event?: CalEvent; date: Date; edit?: boolean } | null>(null);
@@ -33,7 +34,11 @@
 
 <div class="week">
 	{#each days as d (d.getTime())}
-		<section class="day" class:today={sameDay(d, new Date())}>
+		<section
+			class="day"
+			class:today={sameDay(d, new Date())}
+			{@attach longpress(() => (dialog = { date: d }))}
+		>
 			<header>
 				<span>{fmtDayShort(d)}</span>
 				<button
@@ -66,6 +71,12 @@
 {/if}
 
 <style>
+	.day {
+		/* Langes Drücken soll nicht Text markieren */
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
 	.toolbar {
 		margin-bottom: 12px;
 	}

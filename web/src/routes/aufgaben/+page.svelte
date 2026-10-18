@@ -3,15 +3,19 @@
 	import { api, type Routine, type Task } from '#lib/api.ts';
 	import { app } from '#lib/app.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import LoginDialog from '#lib/components/LoginDialog.svelte';
 	import ParentGate from '#lib/components/ParentGate.svelte';
 	import RoutineForm from '#lib/components/RoutineForm.svelte';
 	import TaskForm from '#lib/components/TaskForm.svelte';
 	import TaskTile from '#lib/components/TaskTile.svelte';
 	import { SLOT_LABEL, WEEKDAYS } from '#lib/icons.ts';
+	import { longpress } from '#lib/longpress.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 
 	let editTask = $state<Task | 'new' | null>(null);
 	let editRoutine = $state<Routine | 'new' | null>(null);
+	// Langes Drücken: in der Spalte neue Aufgabe für die Person, auf einer Aufgabe bearbeiten
+	let held = $state<{ personId: number } | { task: Task } | null>(null);
 
 	onMount(() => {
 		void tasks.loadRoutines();
@@ -41,7 +45,11 @@
 <div class="people">
 	{#each app.persons as p (p.id)}
 		{@const prog = tasks.progress(p.id)}
-		<section class="card person" style="--c:{p.color}">
+		<section
+			class="card person"
+			style="--c:{p.color}"
+			{@attach longpress(() => (held = { personId: p.id }))}
+		>
 			<header>
 				<Avatar person={p} size={44} />
 				<h2>{p.name}</h2>
@@ -62,6 +70,7 @@
 								task={t}
 								status={tasks.status(t, p.id)}
 								onclick={() => tasks.tap(t, p.id)}
+								onlongpress={() => (held = { task: t })}
 							/>
 						{/each}
 					</div>
@@ -138,6 +147,16 @@
 	</ParentGate>
 </section>
 
+{#if held}
+	{#if !app.isParent}
+		<LoginDialog parentsOnly title="Aufgaben: Elternteil wählen" onclose={() => (held = null)} />
+	{:else if 'task' in held}
+		<TaskForm task={held.task} onclose={() => (held = null)} />
+	{:else}
+		<TaskForm preset={{ assignees: [held.personId] }} onclose={() => (held = null)} />
+	{/if}
+{/if}
+
 {#if editTask}
 	<TaskForm task={editTask === 'new' ? null : editTask} onclose={() => (editTask = null)} />
 {/if}
@@ -149,6 +168,11 @@
 {/if}
 
 <style>
+	.person {
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
 	h1 {
 		margin: 0 0 12px;
 	}
