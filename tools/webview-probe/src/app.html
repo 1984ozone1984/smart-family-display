@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>WebView-Probe</title>
+		<!--
+			Notfall-Erfassung in ES5: läuft auch, wenn das Svelte-Bundle auf einer
+			alten WebView nicht startet. Zeigt dann UA + Fehler an und meldet sie.
+		-->
+		<script>
+			window.__probeErrors = [];
+			window.addEventListener('error', function (e) {
+				window.__probeErrors.push(String(e.message) + ' @ ' + e.filename + ':' + e.lineno);
+			});
+			window.addEventListener('unhandledrejection', function (e) {
+				window.__probeErrors.push('unhandledrejection: ' + String(e.reason));
+			});
+			setTimeout(function () {
+				if (window.__probeMounted) return;
+				var report = {
+					fallback: true,
+					userAgent: navigator.userAgent,
+					errors: window.__probeErrors,
+					time: new Date().toISOString()
+				};
+				var pre = document.createElement('pre');
+				pre.style.cssText = 'white-space:pre-wrap;font-size:16px;padding:16px';
+				pre.textContent = 'Svelte-Bundle nicht gestartet.\n\n' + JSON.stringify(report, null, 2);
+				document.body.appendChild(pre);
+				try {
+					var xhr = new XMLHttpRequest();
+					xhr.open('POST', '/report');
+					xhr.setRequestHeader('Content-Type', 'application/json');
+					xhr.send(JSON.stringify(report));
+				} catch (err) {}
+			}, 6000);
+		</script>
+		%sveltekit.head%
+	</head>
+	<body>
+		<div style="display: contents">%sveltekit.body%</div>
+	</body>
+</html>
