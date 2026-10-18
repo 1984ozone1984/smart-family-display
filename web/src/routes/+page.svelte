@@ -109,8 +109,9 @@
 		<div class="choice">
 			<button
 				onclick={() => {
-					pressed = null;
+					// Erst übernehmen, dann schließen: `p` hängt an `pressed`
 					dialog = { personId: p.id };
+					pressed = null;
 				}}
 			>
 				<span aria-hidden="true">📅</span> Termin
@@ -118,8 +119,8 @@
 			<ParentGate label="Aufgabe: als Elternteil anmelden">
 				<button
 					onclick={() => {
-						pressed = null;
 						newTaskFor = p;
+						pressed = null;
 					}}
 				>
 					<span aria-hidden="true">✅</span> Aufgabe
