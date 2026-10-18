@@ -18,7 +18,7 @@ services:
 
   mealie:
     image: ghcr.io/mealie-recipes/mealie:v3.28.0
-    container_name: kz-mealie
+    container_name: family-dashboard-mealie
     restart: unless-stopped
     environment:
       ALLOW_SIGNUP: 'false'
@@ -26,7 +26,7 @@ services:
     volumes:
       - /mnt/user/appdata/mealie:/app/data
     networks: [kz]
-    # Kein Port nach außen: die App spricht Mealie intern unter http://kz-mealie:9000 an.
+    # Kein Port nach außen: die App spricht Mealie intern unter http://family-dashboard-mealie:9000 an.
 
 networks:
   kz: {}
