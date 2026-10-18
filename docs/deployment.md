@@ -75,7 +75,7 @@ ingress:
 
 Die GitHub Action baut bei jedem Push auf `main` das Image `ghcr.io/1984ozone1984/kommandozentrale:latest`.
 
-Nach dem **ersten** Lauf das Paket einmalig öffentlich stellen: GitHub → Profil → **Packages → kommandozentrale → Package settings → Change visibility → Public**. Im Image sind keine Secrets. Alternativ auf Unraid `docker login ghcr.io` mit einem Token (`read:packages`) ausführen.
+Das Paket erbt die Sichtbarkeit des öffentlichen Repos, Unraid kann es also ohne Login ziehen. Im Image sind keine Secrets. Sollte der Pull doch mit `denied` scheitern: GitHub → Profil → **Packages → kommandozentrale → Package settings → Change visibility → Public**.
 
 ## 3. Unraid
 
