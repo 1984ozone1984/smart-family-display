@@ -39,6 +39,7 @@
 	}
 	.title {
 		font-weight: 600;
-		overflow-wrap: anywhere;
+		hyphens: auto;
+		overflow-wrap: break-word;
 	}
 </style>

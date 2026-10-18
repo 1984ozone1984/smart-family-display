@@ -192,8 +192,8 @@
 		margin: 12px 0 6px;
 	}
 	.list {
-		display: flex;
-		flex-direction: column;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
 		gap: 8px;
 	}
 	.block {

@@ -57,8 +57,10 @@
 		<section class="column" style="--c:{p.color}">
 			<header>
 				<Avatar person={p} size={48} />
-				<h2>{p.name}</h2>
-				<span class="star" title="Punkte">⭐ {tasks.balances[p.id] ?? 0}</span>
+				<div class="who">
+					<h2>{p.name}</h2>
+					<span class="star" title="Punkte">⭐ {tasks.balances[p.id] ?? 0}</span>
+				</div>
 				<button
 					class="add"
 					aria-label="Termin für {p.name}"
@@ -81,12 +83,7 @@
 						<span style="width:{(prog.done / prog.total) * 100}%"></span>
 					</div>
 					{#each tasks.forPerson(p.id) as t (t.id)}
-						<TaskTile
-							task={t}
-							status={tasks.status(t, p.id)}
-							compact
-							onclick={() => tasks.tap(t, p.id)}
-						/>
+						<TaskTile task={t} status={tasks.status(t, p.id)} onclick={() => tasks.tap(t, p.id)} />
 					{/each}
 				</div>
 			{/if}
@@ -150,9 +147,20 @@
 		margin: 0;
 		font-size: 20px;
 	}
+	.who {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		flex: 1;
+	}
+	.who h2 {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 	.star {
-		margin-left: auto;
 		font-weight: 700;
+		font-size: 16px;
 		white-space: nowrap;
 	}
 	.tasks {
