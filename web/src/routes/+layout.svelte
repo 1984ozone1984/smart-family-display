@@ -5,6 +5,7 @@
 	import { page } from '$app/state';
 	import { onMount, type Snippet } from 'svelte';
 	import { app } from '#lib/app.svelte.ts';
+	import { cal } from '#lib/calendar.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import LoginDialog from '#lib/components/LoginDialog.svelte';
 
@@ -25,8 +26,14 @@
 			void goto(resolve('/setup'));
 	});
 
+	$effect(() => {
+		if (app.ready && !app.needsLogin && !app.setupNeeded) cal.start();
+	});
+
 	const NAV = [
 		{ path: '/', label: 'Heute' },
+		{ path: '/woche', label: 'Woche' },
+		{ path: '/agenda', label: 'Agenda' },
 		{ path: '/einstellungen', label: 'Einstellungen' }
 	] as const;
 	const time = $derived(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));

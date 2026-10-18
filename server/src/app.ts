@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import cookie from '@fastify/cookie';
 import fastifyStatic from '@fastify/static';
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify';
@@ -129,7 +129,7 @@ export async function buildApp(deps: AppDeps) {
 		{ prefix: '/api/v1' }
 	);
 
-	const webDir = deps.config.WEB_DIR;
+	const webDir = deps.config.WEB_DIR && resolve(deps.config.WEB_DIR);
 	if (webDir && existsSync(join(webDir, 'index.html'))) {
 		await app.register(fastifyStatic, {
 			root: webDir,

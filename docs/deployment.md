@@ -97,6 +97,7 @@ Ablage:
    - `LAN_SUBNETS`: Subnetz des Tablets, z. B. `192.168.x.0/24`
    - `TUNNEL_SOURCE_IPS`: `<LXC-IP>`
    - `PUBLIC_HOST`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`: aus Schritt 1
+   - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ENCRYPTION_KEY`: siehe [google-setup.md](google-setup.md)
 4. Plugin **Compose Manager Plus** (Fork des archivierten Docker Compose Manager) installieren.
 5. Docker → *Compose* → **Add New Stack** `family-dashboard`, Quelle **External folder** → `/mnt/user/appdata/family-dashboard`.
 6. **Compose Up**. Unter Docker sollte `family-dashboard` nach kurzer Zeit *healthy* sein.

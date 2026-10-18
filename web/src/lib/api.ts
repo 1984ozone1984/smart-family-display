@@ -9,6 +9,41 @@ export type Person = {
 	email?: string | null;
 };
 
+export type Calendar = {
+	id: number;
+	summary: string;
+	color: string | null;
+	personId: number | null;
+	enabled: boolean;
+	writable: boolean;
+	account: string | null;
+	lastSyncedAt: string | null;
+	lastError: string | null;
+};
+
+/** Termin; ganztägig: start/end als Datum (end exklusiv), sonst ISO-Zeitpunkt (UTC). */
+export type CalEvent = {
+	id: number;
+	sourceId: number;
+	personId: number | null;
+	title: string;
+	start: string;
+	end: string;
+	allDay: boolean;
+	location: string | null;
+	description: string | null;
+	recurring: boolean;
+	createdBy: number | null;
+	writable: boolean;
+};
+
+export type GoogleAccount = {
+	id: number;
+	email: string;
+	personId: number;
+	status: 'ok' | 'revoked';
+};
+
 export class ApiError extends Error {
 	constructor(
 		public status: number,

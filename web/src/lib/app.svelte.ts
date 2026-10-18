@@ -16,6 +16,7 @@ class AppState {
 	live = $state<'sse' | 'polling' | 'offline'>('offline');
 
 	#source: EventSource | null = null;
+	#listeners = new Map<string, Set<() => void>>();
 	#poll: ReturnType<typeof setInterval> | null = null;
 	#idle: ReturnType<typeof setTimeout> | null = null;
 
@@ -75,7 +76,7 @@ class AppState {
 			this.live = 'sse';
 			this.#stopPolling();
 			// Was während der Unterbrechung passiert ist, nachladen
-			void this.loadPersons();
+			this.#refreshAll();
 		};
 		es.onerror = () => {
 			if (es.readyState === EventSource.CLOSED) {
@@ -85,12 +86,34 @@ class AppState {
 			this.#startPolling();
 		};
 		es.addEventListener('persons.changed', () => void this.loadPersons());
+		for (const type of ['events.changed', 'calendars.changed'])
+			es.addEventListener(type, () => this.#emit(type));
+	}
+
+	/** Andere Bereiche (Kalender …) melden sich hier für Server-Ereignisse an. */
+	on(type: 'events.changed' | 'calendars.changed', fn: () => void): () => void {
+		let set = this.#listeners.get(type);
+		// Reine Callback-Registry, muss nicht reaktiv sein
+		// eslint-disable-next-line svelte/prefer-svelte-reactivity
+		if (!set) this.#listeners.set(type, (set = new Set()));
+		set.add(fn);
+		return () => set.delete(fn);
+	}
+
+	#emit(type: string) {
+		for (const fn of this.#listeners.get(type) ?? []) fn();
+	}
+
+	#refreshAll() {
+		void this.loadPersons();
+		this.#emit('events.changed');
+		this.#emit('calendars.changed');
 	}
 
 	#startPolling() {
 		if (this.#poll) return;
 		this.live = 'polling';
-		this.#poll = setInterval(() => void this.loadPersons(), POLL_MS);
+		this.#poll = setInterval(() => this.#refreshAll(), POLL_MS);
 	}
 
 	#stopPolling() {

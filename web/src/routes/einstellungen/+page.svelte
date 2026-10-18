@@ -2,6 +2,7 @@
 	import type { Person } from '#lib/api.ts';
 	import { app } from '#lib/app.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import CalendarSettings from '#lib/components/CalendarSettings.svelte';
 	import LoginDialog from '#lib/components/LoginDialog.svelte';
 	import PersonForm from '#lib/components/PersonForm.svelte';
 
@@ -11,19 +12,16 @@
 
 <h1>Einstellungen</h1>
 
-{#if !app.isParent}
+{#if !app.me}
 	<div class="card">
-		<p>Einstellungen sind nur für Eltern.</p>
-		<button class="btn primary" onclick={() => (loginOpen = true)}>Als Elternteil anmelden</button>
+		<p>Zum Ändern der Einstellungen bitte anmelden.</p>
+		<button class="btn primary" onclick={() => (loginOpen = true)}>Anmelden</button>
 	</div>
 	{#if loginOpen}
-		<LoginDialog
-			parentsOnly
-			title="Elternteil wählen"
-			onclose={() => (loginOpen = false)}
-			ondone={() => (loginOpen = false)}
-		/>
+		<LoginDialog onclose={() => (loginOpen = false)} ondone={() => (loginOpen = false)} />
 	{/if}
+{:else if !app.isParent}
+	<CalendarSettings />
 {:else if editing}
 	{#key editing}
 		<PersonForm person={editing === 'new' ? null : editing} onclose={() => (editing = null)} />
@@ -43,6 +41,7 @@
 		</ul>
 		<button class="btn primary" onclick={() => (editing = 'new')}>Person hinzufügen</button>
 	</section>
+	<CalendarSettings />
 {/if}
 
 <style>
@@ -51,6 +50,9 @@
 	}
 	h2 {
 		margin-top: 0;
+	}
+	section {
+		margin-bottom: 16px;
 	}
 	ul {
 		list-style: none;

@@ -71,7 +71,8 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Externe Quelle ist führend. Konflikte über `etag`/`updated` (Google); bei Konflikt gewinnt die Quelle, Nutzer bekommt Hinweis
 - Ganztags-, wiederkehrende Termine (RRULE) anzeigen; Bearbeiten von Serien in v1: nur „ganze Serie“
 - Ansichten: Heute (Default, Spalten pro Person), Woche, Agenda
-- Bearbeitungsschutz: externe Termine von Kindern nicht änderbar (konfigurierbar)
+- Bearbeitungsschutz: externe Termine von Kindern nicht änderbar (konfigurierbar). v1: Kinder schreiben nur in ihren eigenen Kalender und ändern nur Termine, die sie in der App angelegt haben
+- Jede Person verbindet ihr eigenes Google-Konto (OAuth über die öffentliche Domain); ein geteilter Familienkalender wird nur einmal synchronisiert
 
 ### 5.2 Aufgaben & Routinen
 - Aufgabe: Titel, Person(en), Fälligkeit, Punkte, optional Icon
@@ -110,8 +111,9 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 | Tabelle | Wichtige Felder |
 |---|---|
 | `person` | id, name, color, avatar_path, role (parent/child), pin_hash, email |
-| `calendar_source` | id, type (google; erweiterbar), account_ref, remote_id, person_id NULL (=Alle), color, writable, sync_token |
-| `event` | id, source_id, remote_id, etag, title, start, end, all_day, rrule, location, updated_at |
+| `google_account` | id, person_id, email, refresh_token_enc, status (ok/revoked) |
+| `calendar_source` | id, type (google; erweiterbar), account_id, remote_id (eindeutig → geteilter Kalender nur einmal), summary, person_id NULL (=Alle), color, enabled, writable, sync_token, full_synced_at |
+| `event` | id, source_id, remote_id, recurring_id, etag, title, description, location, start, end, all_day, rrule, range_start/range_end (UTC), created_by, updated_at |
 | `task` | id, title, due_at, points, requires_approval, routine_id NULL, created_by |
 | `task_assignee` | task_id, person_id, status (open/done/approved), done_at |
 | `routine` | id, title, schedule (JSON), time_slot, points, active |
@@ -133,7 +135,8 @@ REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
 | Auth | `GET /session`, `POST /session` (person_id + PIN), `DELETE /session`, `GET /session/persons` (Auswahl für Login) |
 | Einrichtung | `GET/POST /setup` (erster Elternteil, nur LAN, nur bei leerer DB) |
 | Personen | `GET/POST/PATCH /persons`, `POST /persons/:id/avatar`, `GET /avatars/:file` |
-| Kalender | `GET /events?from&to`, `POST/PATCH/DELETE /events/:id`, `POST /calendars/sync` |
+| Kalender | `GET /events?from&to`, `POST /events`, `PATCH/DELETE /events/:id`, `GET /calendars`, `PATCH /calendars/:id`, `POST /calendars/sync`, `POST /calendars/discover` |
+| Google | `GET /google/status`, `GET /google/accounts`, `GET /google/connect`, `GET /google/callback`, `DELETE /google/accounts/:id` |
 | Aufgaben | `GET/POST/PATCH /tasks`, `POST /tasks/:id/done`, `POST /tasks/:id/approve` |
 | Routinen | `GET/POST/PATCH /routines` |
 | Punkte | `GET /points/:person`, `POST /points` (nur Eltern) |
