@@ -22,9 +22,11 @@ import { eventRoutes } from './routes/events.ts';
 import { googleRoutes } from './routes/google.ts';
 import { healthRoutes } from './routes/health.ts';
 import { personRoutes } from './routes/persons.ts';
+import { rewardRoutes } from './routes/rewards.ts';
 import { sessionRoutes } from './routes/session.ts';
 import { setupRoutes } from './routes/setup.ts';
 import { streamRoutes } from './routes/stream.ts';
+import { taskRoutes } from './routes/tasks.ts';
 
 declare module 'fastify' {
 	interface FastifyInstance {
@@ -143,6 +145,8 @@ export async function buildApp(deps: AppDeps) {
 			await googleRoutes(api, ctx);
 			await calendarRoutes(api, ctx);
 			await eventRoutes(api, ctx);
+			await taskRoutes(api, ctx);
+			await rewardRoutes(api, ctx);
 		},
 		{ prefix: '/api/v1' }
 	);

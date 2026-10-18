@@ -44,3 +44,20 @@ export function addDays(date: string, days: number): string {
 export function daysBetween(a: string, b: string): number {
 	return Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / DAY_MS);
 }
+
+/** Heutiger Kalendertag (YYYY-MM-DD) in `tz`. */
+export function todayIn(tz: string, now = new Date()): string {
+	// en-CA formatiert als YYYY-MM-DD
+	return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
+}
+
+/** ISO-Wochentag: 1 = Montag … 7 = Sonntag */
+export function isoWeekday(date: string): number {
+	const d = new Date(`${date}T00:00:00Z`).getUTCDay();
+	return d === 0 ? 7 : d;
+}
+
+/** Montag der Woche, in der `date` liegt */
+export function weekStart(date: string): string {
+	return addDays(date, 1 - isoWeekday(date));
+}

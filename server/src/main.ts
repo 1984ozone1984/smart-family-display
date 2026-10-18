@@ -9,6 +9,8 @@ import { createCrypto } from './crypto.ts';
 import { createEventBus } from './events/bus.ts';
 import { createGoogleAccounts } from './google/accounts.ts';
 import { createOAuth } from './google/oauth.ts';
+import { generateRoutineTasks } from './tasks/routines.ts';
+import { todayIn } from './time.ts';
 
 const config = loadConfig();
 mkdirSync(config.DATA_DIR, { recursive: true });
@@ -45,6 +47,13 @@ else {
 	setTimeout(run, 5_000).unref();
 	setInterval(run, config.CALENDAR_SYNC_MIN * 60_000).unref();
 }
+
+// Routinen: heutige Aufgaben anlegen – beim Start und regelmäßig (deckt den Tageswechsel ab)
+const routines = () => {
+	if (generateRoutineTasks(db, todayIn(config.TZ)) > 0) bus.publish({ type: 'tasks.changed' });
+};
+routines();
+setInterval(routines, 5 * 60_000).unref();
 
 purgeExpiredSessions(db);
 setInterval(() => purgeExpiredSessions(db), 3_600_000).unref();
