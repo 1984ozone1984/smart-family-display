@@ -86,7 +86,7 @@ Das Paket erbt die Sichtbarkeit des öffentlichen Repos, Unraid kann es also ohn
    - `LAN_SUBNETS`: Subnetz des Tablets, z. B. `192.168.x.0/24`
    - `TUNNEL_SOURCE_IPS`: `<LXC-IP>`
    - `PUBLIC_HOST`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`: aus Schritt 1
-5. Die Ordner `/mnt/user/appdata/kommandozentrale` und `/mnt/user/appdata/mealie` anlegen. Besitzer `nobody:users` ist Unraid-Standard.
+5. Die Ordner `/mnt/user/appdata/family-dashboard` und `/mnt/user/appdata/mealie` anlegen. Besitzer `nobody:users` ist Unraid-Standard.
 6. **Compose Up** ausführen. Unter Docker sollte `kommandozentrale` nach kurzer Zeit *healthy* sein.
 
 Update auf eine neue Version: **Compose Pull**, danach **Compose Up**.

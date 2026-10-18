@@ -13,7 +13,7 @@ services:
     ports:
       - '${APP_PORT:-8470}:8470'
     volumes:
-      - /mnt/user/appdata/kommandozentrale:/data
+      - /mnt/user/appdata/family-dashboard:/data
     networks: [kz]
 
   mealie:
