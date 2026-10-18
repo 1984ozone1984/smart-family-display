@@ -66,8 +66,26 @@ export type Ctx = {
 
 const UNGUARDED = ['/api/v1/health'];
 
+/** Einmal-Codes und OAuth-State nicht ins Log schreiben */
+export function redactUrl(url: string): string {
+	return url.replace(/([?&](?:code|state)=)[^&]*/g, '$1[redacted]');
+}
+
+function logRequest(req: FastifyRequest) {
+	return {
+		method: req.method,
+		url: redactUrl(req.url),
+		host: req.headers.host,
+		remoteAddress: req.ip
+	};
+}
+
 export async function buildApp(deps: AppDeps) {
-	const app = Fastify({ logger: deps.logger ?? false, trustProxy: false, bodyLimit: 64 * 1024 });
+	const app = Fastify({
+		logger: deps.logger ? { serializers: { req: logRequest } } : false,
+		trustProxy: false,
+		bodyLimit: 64 * 1024
+	});
 	const google = deps.google ?? null;
 	const apiFor = (accountId: number): CalendarApi => {
 		if (!google) throw new GoogleError(503, 'google not configured');

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { redactUrl } from '../src/app.ts';
 import { cookieOf, LAN_IP, makeApp, OUTSIDE_IP, PUBLIC_HOST, TUNNEL_IP } from './helpers.ts';
 
 type App = Awaited<ReturnType<typeof makeApp>>['app'];
@@ -306,5 +307,11 @@ describe('API', () => {
 		expect(
 			(await app.inject({ url: '/api/v1/avatars/..%2F..%2Fetc%2Fpasswd', ...lan })).statusCode
 		).toBe(404);
+	});
+
+	it('OAuth-Code und State landen nicht im Log', () => {
+		expect(redactUrl('/api/v1/google/callback?state=abc&iss=x&code=4/geheim&scope=s')).toBe(
+			'/api/v1/google/callback?state=[redacted]&iss=x&code=[redacted]&scope=s'
+		);
 	});
 });
