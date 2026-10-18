@@ -33,13 +33,52 @@ const schema = z
 		LAN_SUBNETS: list,
 
 		SESSION_TTL_LAN_MIN: z.coerce.number().positive().default(10),
-		SESSION_TTL_PUBLIC_DAYS: z.coerce.number().positive().default(90)
+		SESSION_TTL_PUBLIC_DAYS: z.coerce.number().positive().default(90),
+
+		TZ: z
+			.string()
+			.default('Europe/Berlin')
+			.refine((tz) => {
+				try {
+					new Intl.DateTimeFormat('de', { timeZone: tz });
+					return true;
+				} catch {
+					return false;
+				}
+			}, 'unbekannte Zeitzone'),
+
+		// Google Calendar (OAuth-Client aus der Google Cloud Console)
+		GOOGLE_CLIENT_ID: z.string().optional(),
+		GOOGLE_CLIENT_SECRET: z.string().optional(),
+		// Standard: https://<PUBLIC_HOST>/api/v1/google/callback
+		GOOGLE_REDIRECT_URI: z.url().optional(),
+		CALENDAR_SYNC_MIN: z.coerce.number().positive().default(3),
+		// 32 Byte, base64 (openssl rand -base64 32); verschlüsselt Tokens at rest. Nie ändern!
+		ENCRYPTION_KEY: z
+			.string()
+			.refine((k) => Buffer.from(k, 'base64').length === 32, '32 Byte base64 erwartet')
+			.optional()
 	})
 	.superRefine((c, ctx) => {
 		if (!!c.CF_ACCESS_TEAM_DOMAIN !== !!c.CF_ACCESS_AUD) {
 			ctx.addIssue({
 				code: 'custom',
 				message: 'CF_ACCESS_TEAM_DOMAIN und CF_ACCESS_AUD nur gemeinsam setzen'
+			});
+		}
+		if (!!c.GOOGLE_CLIENT_ID !== !!c.GOOGLE_CLIENT_SECRET) {
+			ctx.addIssue({
+				code: 'custom',
+				message: 'GOOGLE_CLIENT_ID und GOOGLE_CLIENT_SECRET nur gemeinsam setzen'
+			});
+		}
+		if (c.GOOGLE_CLIENT_ID && !c.ENCRYPTION_KEY) {
+			ctx.addIssue({ code: 'custom', message: 'Google konfiguriert: ENCRYPTION_KEY ist Pflicht' });
+		}
+		if (c.GOOGLE_CLIENT_ID && !c.GOOGLE_REDIRECT_URI && !c.PUBLIC_HOST) {
+			ctx.addIssue({
+				code: 'custom',
+				message: 'Google konfiguriert: PUBLIC_HOST oder GOOGLE_REDIRECT_URI ist Pflicht'
 			});
 		}
 		if (c.LAN_SUBNETS.length === 0 && !c.PUBLIC_HOST) {

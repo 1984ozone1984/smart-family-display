@@ -7,16 +7,29 @@ import { createAccessPolicy, type Via } from './auth/access.ts';
 import type { AccessVerifier } from './auth/cf-access.ts';
 import { createLockout, type Lockout } from './auth/pin.ts';
 import { findSession, SESSION_COOKIE, type SessionPerson } from './auth/session.ts';
+import { createCalendarService, type CalendarService } from './calendar/service.ts';
+import { createSync, type Sync } from './calendar/sync.ts';
 import type { Config } from './config.ts';
+import type { Crypto } from './crypto.ts';
 import type { Db } from './db/index.ts';
 import type { EventBus } from './events/bus.ts';
+import type { GoogleAccounts } from './google/accounts.ts';
+import type { CalendarApi } from './google/calendar-api.ts';
+import { GoogleError } from './google/errors.ts';
+import type { OAuth } from './google/oauth.ts';
+import { calendarRoutes } from './routes/calendars.ts';
 import { eventRoutes } from './routes/events.ts';
+import { googleRoutes } from './routes/google.ts';
 import { healthRoutes } from './routes/health.ts';
 import { personRoutes } from './routes/persons.ts';
 import { sessionRoutes } from './routes/session.ts';
 import { setupRoutes } from './routes/setup.ts';
+import { streamRoutes } from './routes/stream.ts';
 
 declare module 'fastify' {
+	interface FastifyInstance {
+		sync: Sync;
+	}
 	interface FastifyRequest {
 		via: Via;
 		accessEmail: string | null;
@@ -24,26 +37,52 @@ declare module 'fastify' {
 	}
 }
 
+export type GoogleDeps = {
+	oauth: OAuth;
+	accounts: Pick<GoogleAccounts, 'apiFor' | 'apiWithToken' | 'remember' | 'forget'>;
+	crypto: Crypto;
+};
+
 export type AppDeps = {
 	config: Config;
 	db: Db;
 	bus: EventBus;
 	verify?: AccessVerifier;
 	lockout?: Lockout;
+	/** null = Google nicht konfiguriert */
+	google?: GoogleDeps | null;
 	logger?: boolean;
 };
 
-export type Ctx = Required<Omit<AppDeps, 'verify' | 'logger'>>;
+export type Ctx = {
+	config: Config;
+	db: Db;
+	bus: EventBus;
+	lockout: Lockout;
+	google: GoogleDeps | null;
+	sync: Sync;
+	calendars: CalendarService;
+};
 
 const UNGUARDED = ['/api/v1/health'];
 
 export async function buildApp(deps: AppDeps) {
 	const app = Fastify({ logger: deps.logger ?? false, trustProxy: false, bodyLimit: 64 * 1024 });
+	const google = deps.google ?? null;
+	const apiFor = (accountId: number): CalendarApi => {
+		if (!google) throw new GoogleError(503, 'google not configured');
+		return google.accounts.apiFor(accountId);
+	};
+	const tz = deps.config.TZ;
+	const sync = createSync({ db: deps.db, bus: deps.bus, tz, apiFor, log: app.log });
 	const ctx: Ctx = {
 		config: deps.config,
 		db: deps.db,
 		bus: deps.bus,
-		lockout: deps.lockout ?? createLockout()
+		lockout: deps.lockout ?? createLockout(),
+		google,
+		sync,
+		calendars: createCalendarService({ db: deps.db, bus: deps.bus, tz, apiFor, sync })
 	};
 	const decide = createAccessPolicy({
 		publicHost: deps.config.PUBLIC_HOST,
@@ -53,6 +92,7 @@ export async function buildApp(deps: AppDeps) {
 	});
 
 	await app.register(cookie);
+	app.decorate('sync', sync);
 	app.decorateRequest('via', 'lan');
 	app.decorateRequest('accessEmail', null);
 	app.decorateRequest('person', null);
@@ -81,6 +121,9 @@ export async function buildApp(deps: AppDeps) {
 			await setupRoutes(api, ctx);
 			await sessionRoutes(api, ctx);
 			await personRoutes(api, ctx);
+			await streamRoutes(api, ctx);
+			await googleRoutes(api, ctx);
+			await calendarRoutes(api, ctx);
 			await eventRoutes(api, ctx);
 		},
 		{ prefix: '/api/v1' }

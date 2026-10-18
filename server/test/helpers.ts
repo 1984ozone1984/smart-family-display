@@ -1,12 +1,15 @@
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createLocalJWKSet, exportJWK, generateKeyPair, SignJWT } from 'jose';
-import { buildApp } from '../src/app.ts';
+import { buildApp, type GoogleDeps } from '../src/app.ts';
 import { createAccessVerifier } from '../src/auth/cf-access.ts';
 import { loadConfig } from '../src/config.ts';
+import { createCrypto } from '../src/crypto.ts';
 import { migrate, openDb } from '../src/db/index.ts';
 import { createEventBus } from '../src/events/bus.ts';
+import type { FakeGoogle } from './fake-google.ts';
 
 export const TEAM = 'https://team.example.cloudflareaccess.com';
 export const AUD = 'test-aud';
@@ -30,21 +33,51 @@ export async function accessKeys() {
 	return { keys, sign };
 }
 
-export async function makeApp(opts: { lanSubnets?: string } = {}) {
+/** Google-Abhängigkeiten mit Fake-API und Fake-OAuth. */
+export function googleDeps(fake: FakeGoogle): GoogleDeps {
+	return {
+		crypto: createCrypto(randomBytes(32).toString('base64')),
+		oauth: {
+			authUrl: (state) => `https://accounts.example/auth?state=${state}`,
+			exchange: async (code) => ({
+				accessToken: 'at',
+				refreshToken: `rt-${code}`,
+				expiresAt: Date.now() + 3_600_000
+			}),
+			refresh: async () => ({ accessToken: 'at', expiresAt: Date.now() + 3_600_000 }),
+			revoke: async () => {}
+		},
+		accounts: {
+			apiFor: () => fake.api,
+			apiWithToken: () => fake.api,
+			remember: () => {},
+			forget: () => {}
+		}
+	};
+}
+
+export async function makeApp(opts: { lanSubnets?: string; google?: FakeGoogle } = {}) {
 	const config = loadConfig({
 		DATA_DIR: mkdtempSync(join(tmpdir(), 'kz-test-')),
 		PUBLIC_HOST,
 		CF_ACCESS_TEAM_DOMAIN: TEAM,
 		CF_ACCESS_AUD: AUD,
 		TUNNEL_SOURCE_IPS: TUNNEL_IP,
-		LAN_SUBNETS: opts.lanSubnets ?? '192.168.1.0/24'
+		LAN_SUBNETS: opts.lanSubnets ?? '192.168.1.0/24',
+		TZ: 'Europe/Berlin'
 	});
 	const db = openDb(':memory:');
 	migrate(db);
 	const bus = createEventBus();
 	const { keys, sign } = await accessKeys();
 	const verify = createAccessVerifier({ teamDomain: TEAM, aud: AUD, keys });
-	const app = await buildApp({ config, db, bus, verify });
+	const app = await buildApp({
+		config,
+		db,
+		bus,
+		verify,
+		google: opts.google ? googleDeps(opts.google) : null
+	});
 	return { app, db, bus, sign, config };
 }
 
