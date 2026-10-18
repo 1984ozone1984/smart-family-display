@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CalEvent } from '#lib/api.ts';
+	import type { CalEvent, Person } from '#lib/api.ts';
 	import { app } from '#lib/app.svelte.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
 	import { addDays, eventsOnDay, fmtDay, isoDate, sameDay, startOfDay } from '#lib/dates.ts';
@@ -7,11 +7,18 @@
 	import DayNav from '#lib/components/DayNav.svelte';
 	import EventDialog from '#lib/components/EventDialog.svelte';
 	import EventItem from '#lib/components/EventItem.svelte';
+	import Modal from '#lib/components/Modal.svelte';
+	import ParentGate from '#lib/components/ParentGate.svelte';
+	import TaskForm from '#lib/components/TaskForm.svelte';
 	import TaskTile from '#lib/components/TaskTile.svelte';
+	import { longpress } from '#lib/longpress.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 
 	let day = $state(startOfDay(new Date()));
 	let dialog = $state<{ event?: CalEvent; personId?: number | null } | null>(null);
+	// Langes Drücken in einer Spalte: Auswahl Termin oder Aufgabe für diese Person
+	let pressed = $state<Person | null>(null);
+	let newTaskFor = $state<Person | null>(null);
 
 	$effect(() => void cal.show(day, addDays(day, 1)));
 
@@ -56,7 +63,7 @@
 <div class="columns" style="--n:{Math.max(app.persons.length, 1)}">
 	{#each app.persons as p (p.id)}
 		{@const mine = tasks.forPerson(p.id, true)}
-		<section class="column" style="--c:{p.color}">
+		<section class="column" style="--c:{p.color}" {@attach longpress(() => (pressed = p))}>
 			<header>
 				<Avatar person={p} size={48} />
 				<div class="who">
@@ -95,6 +102,40 @@
 	{/each}
 </div>
 
+{#if pressed}
+	{@const p = pressed}
+	<Modal title="Neu für {p.name}" onclose={() => (pressed = null)}>
+		<p class="muted">{fmtDay(day)}</p>
+		<div class="choice">
+			<button
+				onclick={() => {
+					pressed = null;
+					dialog = { personId: p.id };
+				}}
+			>
+				<span aria-hidden="true">📅</span> Termin
+			</button>
+			<ParentGate label="Aufgabe: als Elternteil anmelden">
+				<button
+					onclick={() => {
+						pressed = null;
+						newTaskFor = p;
+					}}
+				>
+					<span aria-hidden="true">✅</span> Aufgabe
+				</button>
+			</ParentGate>
+		</div>
+	</Modal>
+{/if}
+
+{#if newTaskFor}
+	<TaskForm
+		preset={{ assignees: [newTaskFor.id], dueDate: isoDate(day) }}
+		onclose={() => (newTaskFor = null)}
+	/>
+{/if}
+
 {#if dialog}
 	<EventDialog
 		event={dialog.event ?? null}
@@ -105,6 +146,31 @@
 {/if}
 
 <style>
+	.choice {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 12px;
+		align-items: stretch;
+	}
+	.choice button {
+		flex: 1;
+		min-width: 140px;
+		min-height: 88px;
+		border-radius: 16px;
+		background: var(--surface-2);
+		font-size: 20px;
+		font-weight: 700;
+	}
+	.choice span {
+		font-size: 28px;
+		margin-right: 6px;
+	}
+	.column {
+		/* Langes Drücken soll nicht Text markieren */
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
 	.toolbar {
 		display: flex;
 		justify-content: space-between;

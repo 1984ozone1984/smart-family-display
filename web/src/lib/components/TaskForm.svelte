@@ -7,13 +7,23 @@
 	import PersonChips from './PersonChips.svelte';
 	import Stepper from './Stepper.svelte';
 
-	let { task = null, onclose }: { task?: Task | null; onclose: () => void } = $props();
+	let {
+		task = null,
+		preset = {},
+		onclose
+	}: {
+		task?: Task | null;
+		/** Vorbelegung für eine neue Aufgabe (z. B. langes Drücken in einer Personen-Spalte) */
+		preset?: { assignees?: number[]; dueDate?: string };
+		onclose: () => void;
+	} = $props();
 	const t = untrack(() => task);
+	const pre = untrack(() => preset);
 
 	let title = $state(t?.title ?? '');
 	let icon = $state<string | null>(t?.icon ?? null);
-	let assignees = $state<number[]>(t?.assignees.map((a) => a.personId) ?? []);
-	let dueDate = $state(t?.dueDate ?? '');
+	let assignees = $state<number[]>(t?.assignees.map((a) => a.personId) ?? pre.assignees ?? []);
+	let dueDate = $state(t?.dueDate ?? pre.dueDate ?? '');
 	let timeSlot = $state<Slot | ''>(t?.timeSlot ?? '');
 	let points = $state(t?.points ?? 1);
 	let requiresApproval = $state(t?.requiresApproval ?? false);
