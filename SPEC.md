@@ -30,7 +30,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 
 | Komponente | Wo | Erreichbar |
 |---|---|---|
-| `kommandozentrale` (App + API) | Unraid Docker | LAN direkt + `https://<sub>.<domain>` über Tunnel |
+| `family-dashboard` (App + API, Image `kommandozentrale`) | Unraid Docker | LAN direkt + `https://<sub>.<domain>` über Tunnel |
 | `mealie` | Unraid Docker | nur intern (Docker-Netz) |
 | `cloudflared` | bestehender LXC auf anderem Server im LAN | ausgehend zu Cloudflare; erreicht die App über `<UNRAID-IP>:8470` |
 

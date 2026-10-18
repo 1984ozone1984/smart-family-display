@@ -3,7 +3,7 @@
 ```
 Handy ──HTTPS──▶ Cloudflare Access ──▶ Tunnel ──▶ cloudflared (LXC, anderer Server)
                                                        │ HTTP im LAN
-Tablet ──────────── HTTP im LAN ─────────────────────▶ Unraid :8470  kommandozentrale ──▶ kz-mealie (nur Docker-Netz)
+Tablet ──────────── HTTP im LAN ─────────────────────▶ Unraid :8470  family-dashboard ──▶ kz-mealie (nur Docker-Netz)
 ```
 
 Platzhalter in dieser Anleitung:
@@ -80,14 +80,14 @@ Das Paket erbt die Sichtbarkeit des öffentlichen Repos, Unraid kann es also ohn
 ## 3. Unraid
 
 1. Aus den Community Apps das Plugin **Docker Compose Manager** installieren.
-2. Docker → *Compose* → **Add New Stack** `kommandozentrale`.
+2. Docker → *Compose* → **Add New Stack** `family-dashboard`.
 3. Als Compose-Datei den Inhalt von `docker-compose.yml` einfügen.
 4. Als `.env` die Vorlage `.env.example` einfügen und ausfüllen:
    - `LAN_SUBNETS`: Subnetz des Tablets, z. B. `192.168.x.0/24`
    - `TUNNEL_SOURCE_IPS`: `<LXC-IP>`
    - `PUBLIC_HOST`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`: aus Schritt 1
 5. Die Ordner `/mnt/user/appdata/family-dashboard` und `/mnt/user/appdata/mealie` anlegen. Besitzer `nobody:users` ist Unraid-Standard.
-6. **Compose Up** ausführen. Unter Docker sollte `kommandozentrale` nach kurzer Zeit *healthy* sein.
+6. **Compose Up** ausführen. Unter Docker sollte `family-dashboard` nach kurzer Zeit *healthy* sein.
 
 Update auf eine neue Version: **Compose Pull**, danach **Compose Up**.
 

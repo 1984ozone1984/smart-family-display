@@ -1,9 +1,9 @@
 # Stack für Unraid. cloudflared läuft extern (eigener LXC) und erreicht die App über das LAN.
 # Konfiguration in .env neben dieser Datei (Vorlage: .env.example).
 services:
-  kommandozentrale:
+  family-dashboard:
     image: ghcr.io/1984ozone1984/kommandozentrale:latest
-    container_name: kommandozentrale
+    container_name: family-dashboard
     restart: unless-stopped
     # Unraid-Standard nobody:users, damit appdata wie gewohnt beschreibbar ist
     user: '99:100'
