@@ -1,0 +1,32 @@
+# Stack für Unraid. cloudflared läuft extern (eigener LXC) und erreicht die App über das LAN.
+# Konfiguration in .env neben dieser Datei (Vorlage: .env.example).
+services:
+  kommandozentrale:
+    image: ghcr.io/1984ozone1984/kommandozentrale:latest
+    container_name: kommandozentrale
+    restart: unless-stopped
+    # Unraid-Standard nobody:users, damit appdata wie gewohnt beschreibbar ist
+    user: '99:100'
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+    ports:
+      - '${APP_PORT:-8470}:8470'
+    volumes:
+      - /mnt/user/appdata/kommandozentrale:/data
+    networks: [kz]
+
+  mealie:
+    image: ghcr.io/mealie-recipes/mealie:v3.28.0
+    container_name: kz-mealie
+    restart: unless-stopped
+    environment:
+      ALLOW_SIGNUP: 'false'
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - /mnt/user/appdata/mealie:/app/data
+    networks: [kz]
+    # Kein Port nach außen: die App spricht Mealie intern unter http://kz-mealie:9000 an.
+
+networks:
+  kz: {}

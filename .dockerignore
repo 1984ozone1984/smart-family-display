@@ -1,0 +1,11 @@
+**/node_modules
+**/build
+**/.svelte-kit
+.git
+.github
+.env
+.env.*
+data
+docs
+tools/webview-probe
+*.md
