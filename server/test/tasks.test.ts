@@ -3,6 +3,7 @@ import { migrate, openDb } from '../src/db/index.ts';
 import { balance, book, history, settleTask } from '../src/points/ledger.ts';
 import { generateRoutineTasks, occurrence } from '../src/tasks/routines.ts';
 import { insertRoutine, tasksForDate } from '../src/tasks/store.ts';
+import { addDays, todayIn } from '../src/time.ts';
 import { cookieOf, LAN_IP, makeApp, PUBLIC_HOST, TUNNEL_IP } from './helpers.ts';
 
 // 2026-10-19 ist ein Montag
@@ -291,6 +292,58 @@ describe('Aufgaben-API', () => {
 		const id = await f.createTask({ title: 'Lesen', points: 1, assignees: [f.kid, f.sibling] });
 		expect((await f.done(id, f.sibling, true, f.kidPhone)).statusCode).toBe(403);
 		expect((await f.done(id, f.kid, true, f.kidPhone)).statusCode).toBe(204);
+	});
+
+	it('künftige Tage zeigen geplante Routinen-Aufgaben; Vorab-Abhaken höchstens 7 Tage', async () => {
+		const f = await family();
+		const r = await f.app.inject({
+			method: 'POST',
+			url: '/api/v1/routines',
+			...f.asParent,
+			payload: {
+				title: 'Müll rausbringen',
+				schedule: { type: 'daily' },
+				timeSlot: 'evening',
+				points: 2,
+				assignees: [f.kid]
+			}
+		});
+		const routineId = r.json().routine.id as number;
+		const today = todayIn('Europe/Berlin');
+		const day = (n: number) => addDays(today, n);
+		const onDay = async (date: string) =>
+			(await f.app.inject({ url: `/api/v1/tasks?date=${date}`, ...f.lan })).json();
+		const ahead = (date: string, personId = f.kid, opts?: object) =>
+			f.app.inject({
+				method: 'POST',
+				url: `/api/v1/routines/${routineId}/done`,
+				...(opts ?? f.tablet[personId]),
+				payload: { personId, date }
+			});
+
+		const tomorrow = await onDay(day(1));
+		expect(tomorrow.tasks).toEqual([]);
+		expect(tomorrow.planned).toEqual([
+			expect.objectContaining({ routineId, dueDate: day(1), points: 2, assignees: [f.kid] })
+		]);
+		expect((await onDay(day(-1))).planned).toEqual([]);
+
+		expect((await ahead(day(1), f.kid, f.lan)).statusCode).toBe(401);
+		expect((await ahead(day(1), f.sibling, f.tablet[f.kid])).statusCode).toBe(403);
+		expect((await ahead(day(0))).statusCode).toBe(409);
+		expect((await ahead(day(8))).statusCode).toBe(409);
+		expect((await ahead(day(1))).statusCode).toBe(200);
+		expect((await ahead(day(1))).statusCode).toBe(200);
+		expect(await f.points(f.kid)).toBe(2);
+
+		const after = await onDay(day(1));
+		expect(after.planned).toEqual([]);
+		expect(after.tasks).toEqual([
+			expect.objectContaining({
+				title: 'Müll rausbringen',
+				assignees: [expect.objectContaining({ personId: f.kid, status: 'done' })]
+			})
+		]);
 	});
 
 	it('abgelaufene Routinen-Aufgabe ist gesperrt; überfällige einmalige bleibt sichtbar', async () => {

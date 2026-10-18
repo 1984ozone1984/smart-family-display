@@ -2,6 +2,7 @@ import {
 	api,
 	ApiError,
 	type Approval,
+	type PlannedTask,
 	type Redemption,
 	type Reward,
 	type Routine,
@@ -12,6 +13,9 @@ import { app } from './app.svelte.ts';
 class TaskState {
 	tasks = $state<Task[]>([]);
 	today = $state('');
+	/** Anderer Tag in der Heute-Ansicht (YYYY-MM-DD), null = heute */
+	day = $state<string | null>(null);
+	dayTasks = $state<Task[]>([]);
 	approvals = $state<Approval[]>([]);
 	routines = $state<Routine[]>([]);
 	balances = $state<Record<number, number>>({});
@@ -40,6 +44,36 @@ class TaskState {
 		this.tasks = t.tasks;
 		this.today = t.today;
 		this.approvals = a.approvals;
+		if (this.day) await this.#loadDay(this.day);
+	}
+
+	/** Aufgaben eines Tages für die Heute-Ansicht laden (heute: die normale Liste). */
+	async showDay(date: string | null) {
+		this.day = date === this.today ? null : date;
+		if (this.day) await this.#loadDay(this.day);
+	}
+
+	async #loadDay(date: string) {
+		const r = await api<{ tasks: Task[]; planned: PlannedTask[] }>(`/tasks?date=${date}`);
+		if (this.day !== date) return;
+		const planned = r.planned.map((p): Task => ({
+			id: -p.routineId,
+			title: p.title,
+			icon: p.icon,
+			dueDate: p.dueDate,
+			availableFrom: null,
+			timeSlot: p.timeSlot,
+			points: p.points,
+			requiresApproval: p.requiresApproval,
+			routineId: p.routineId,
+			overdue: false,
+			assignees: p.assignees.map((personId) => ({ personId, status: 'open', doneAt: null })),
+			plannedFor: date
+		}));
+		const order = { morning: 1, afternoon: 2, evening: 3 };
+		this.dayTasks = [...r.tasks, ...planned].sort(
+			(a, b) => (a.timeSlot ? order[a.timeSlot] : 4) - (b.timeSlot ? order[b.timeSlot] : 4)
+		);
 	}
 
 	async loadRoutines() {
@@ -62,16 +96,18 @@ class TaskState {
 		this.requests = q.redemptions;
 	}
 
-	forPerson(personId: number): Task[] {
-		return this.tasks.filter((t) => t.assignees.some((a) => a.personId === personId));
+	/** `day`: Aufgaben des in der Heute-Ansicht gewählten Tages statt der heutigen */
+	forPerson(personId: number, day = false): Task[] {
+		const list = day && this.day ? this.dayTasks : this.tasks;
+		return list.filter((t) => t.assignees.some((a) => a.personId === personId));
 	}
 
 	status(t: Task, personId: number) {
 		return t.assignees.find((a) => a.personId === personId)?.status ?? 'open';
 	}
 
-	progress(personId: number): { done: number; total: number } {
-		const mine = this.forPerson(personId);
+	progress(personId: number, day = false): { done: number; total: number } {
+		const mine = this.forPerson(personId, day);
 		return {
 			done: mine.filter((t) => this.status(t, personId) !== 'open').length,
 			total: mine.length
@@ -106,12 +142,19 @@ class TaskState {
 	async toggle(t: Task, personId: number): Promise<string | null> {
 		const done = this.status(t, personId) === 'open';
 		try {
-			await api(`/tasks/${t.id}/done`, { method: 'POST', json: { personId, done } });
+			if (t.plannedFor)
+				await api(`/routines/${t.routineId}/done`, {
+					method: 'POST',
+					json: { personId, date: t.plannedFor }
+				});
+			else await api(`/tasks/${t.id}/done`, { method: 'POST', json: { personId, done } });
 			await this.loadTasks();
 			return null;
 		} catch (err) {
 			if (err instanceof ApiError && err.body.error === 'approved')
 				return 'Schon bestätigt – zurücknehmen können nur Eltern.';
+			if (err instanceof ApiError && err.body.error === 'too early')
+				return 'So weit im Voraus geht Abhaken noch nicht (höchstens 7 Tage).';
 			if (err instanceof ApiError && err.body.error === 'expired')
 				return 'Diese Aufgabe ist abgelaufen.';
 			if (err instanceof ApiError && (err.status === 403 || err.status === 401))

@@ -2,7 +2,7 @@
 	import type { CalEvent } from '#lib/api.ts';
 	import { app } from '#lib/app.svelte.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
-	import { addDays, eventsOnDay, fmtDay, sameDay, startOfDay } from '#lib/dates.ts';
+	import { addDays, eventsOnDay, fmtDay, isoDate, sameDay, startOfDay } from '#lib/dates.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import DayNav from '#lib/components/DayNav.svelte';
 	import EventDialog from '#lib/components/EventDialog.svelte';
@@ -28,6 +28,7 @@
 	const family = $derived(events.filter((e) => e.personId === null));
 	const forPerson = (id: number) => events.filter((e) => e.personId === id);
 	const isToday = $derived(sameDay(day, new Date()));
+	$effect(() => void tasks.showDay(isToday ? null : isoDate(day)));
 </script>
 
 <div class="toolbar">
@@ -54,6 +55,7 @@
 
 <div class="columns" style="--n:{Math.max(app.persons.length, 1)}">
 	{#each app.persons as p (p.id)}
+		{@const mine = tasks.forPerson(p.id, true)}
 		<section class="column" style="--c:{p.color}">
 			<header>
 				<Avatar person={p} size={48} />
@@ -76,13 +78,13 @@
 					<p class="muted empty">Keine Termine</p>
 				{/each}
 			</div>
-			{#if isToday && tasks.forPerson(p.id).length}
-				{@const prog = tasks.progress(p.id)}
+			{#if mine.length}
+				{@const prog = tasks.progress(p.id, true)}
 				<div class="tasks">
 					<div class="bar" aria-label="{prog.done} von {prog.total} Aufgaben erledigt">
 						<span style="width:{(prog.done / prog.total) * 100}%"></span>
 					</div>
-					{#each tasks.forPerson(p.id) as t (t.id)}
+					{#each mine as t (t.id)}
 						<TaskTile task={t} status={tasks.status(t, p.id)} onclick={() => tasks.tap(t, p.id)} />
 					{/each}
 				</div>

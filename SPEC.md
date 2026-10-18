@@ -80,6 +80,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Routine: wiederkehrende Aufgabenvorlage (täglich / Wochentage / wöchentlich), Zeitfenster (Morgen/Nachmittag/Abend)
 - Abhaken durch zugewiesene Person; optional „Eltern bestätigen“ pro Aufgabe
 - Tagesansicht pro Kind mit Fortschritt
+- Heute-Ansicht zeigt die Aufgaben des gewählten Tages; künftige Routinen-Aufgaben erscheinen vorab und lassen sich bis zu 7 Tage im Voraus abhaken (die Aufgabe wird dabei angelegt)
 - Routinen-Aufgaben verfallen nach ihrem Zeitraum (täglich: am Tagesende, wöchentlich: Sonntag) ohne Punkte; einmalige Aufgaben bleiben offen und werden als überfällig markiert
 - Abhaken/Zurücknehmen nur durch die zuständige Person selbst oder ein Elternteil. Am Tablet: Antippen öffnet das PIN-Pad der Person (vorausgewählt); danach bleibt sie 2 min ohne Bedienung angemeldet und kann weitere eigene Aufgaben ohne PIN abhaken
 - Belohnungen anfragen geht am Tablet ohne PIN (Eltern geben ohnehin frei); Eltern-PIN für geschützte Aktionen (Anlegen, Bestätigen, Freigeben, Bonus/Abzug)

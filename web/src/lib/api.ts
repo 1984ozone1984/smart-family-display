@@ -57,6 +57,18 @@ export type Task = {
 	routineId: number | null;
 	overdue: boolean;
 	assignees: { personId: number; status: 'open' | 'done' | 'approved'; doneAt: string | null }[];
+	/** Nur im Frontend: geplante Routinen-Aufgabe dieses Tages, noch nicht angelegt */
+	plannedFor?: string;
+};
+export type PlannedTask = {
+	routineId: number;
+	title: string;
+	icon: string | null;
+	dueDate: string;
+	timeSlot: Slot;
+	points: number;
+	requiresApproval: boolean;
+	assignees: number[];
 };
 export type Schedule =
 	{ type: 'daily' } | { type: 'weekdays'; days: number[] } | { type: 'weekly' };

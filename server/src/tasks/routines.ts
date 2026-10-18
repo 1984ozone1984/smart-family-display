@@ -74,3 +74,36 @@ export function generateRoutineTasks(db: Db, today: string, only?: number): numb
 	}
 	return created;
 }
+
+export type PlannedTask = { routine: RoutineRow; due: string; assignees: number[] };
+
+/**
+ * Routinen-Aufgaben, die an einem künftigen Tag `date` fällig werden, aber noch nicht angelegt
+ * sind (sie entstehen erst an ihrem Tag oder beim Vorab-Abhaken).
+ */
+export function plannedRoutineTasks(db: Db, date: string): PlannedTask[] {
+	const exists = db.prepare('SELECT 1 FROM task WHERE routine_id = ? AND due_date = ?');
+	const planned: PlannedTask[] = [];
+	for (const r of listRoutines(db)) {
+		if (!r.active) continue;
+		const s = parseSchedule(r);
+		const occ = s && occurrence(s, date);
+		if (!occ || exists.get(r.id, occ.due)) continue;
+		const assignees = routineAssignees(db, r.id);
+		if (assignees.length) planned.push({ routine: r, due: occ.due, assignees });
+	}
+	return planned;
+}
+
+/** Legt die Aufgabe der Routine für `date` an (falls noch nicht da) und liefert ihre Id. */
+export function materializeRoutineTask(db: Db, routineId: number, date: string): number | null {
+	generateRoutineTasks(db, date, routineId);
+	const r = listRoutines(db).find((x) => x.id === routineId);
+	const s = r && parseSchedule(r);
+	const occ = s && occurrence(s, date);
+	if (!occ) return null;
+	const row = db
+		.prepare('SELECT id FROM task WHERE routine_id = ? AND due_date = ?')
+		.get(routineId, occ.due);
+	return row ? Number(row.id) : null;
+}

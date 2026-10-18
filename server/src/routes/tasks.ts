@@ -3,7 +3,12 @@ import { z } from 'zod';
 import { requireParent, requirePerson, requireReader, type Ctx } from '../app.ts';
 import { AppError } from '../errors.ts';
 import { getPerson } from '../persons.ts';
-import { generateRoutineTasks, scheduleSchema } from '../tasks/routines.ts';
+import {
+	generateRoutineTasks,
+	materializeRoutineTask,
+	plannedRoutineTasks,
+	scheduleSchema
+} from '../tasks/routines.ts';
 import { decideTask, resettle, setDone } from '../tasks/service.ts';
 import {
 	assigneesOf,
@@ -21,7 +26,7 @@ import {
 	type RoutineRow,
 	type TaskRow
 } from '../tasks/store.ts';
-import { localMidnightUtc, todayIn } from '../time.ts';
+import { daysBetween, localMidnightUtc, todayIn } from '../time.ts';
 import { handle, iconSchema, parse, pointsSchema, slotSchema } from './validate.ts';
 
 const idParam = z.object({ id: z.coerce.number().int().positive() });
@@ -70,11 +75,18 @@ const doneBody = z.object({
 	personId: z.number().int().positive(),
 	done: z.boolean().default(true)
 });
+const plannedDoneBody = z.object({
+	personId: z.number().int().positive(),
+	date: z.iso.date()
+});
 const approveBody = z.object({
 	personId: z.number().int().positive(),
 	approve: z.boolean().default(true)
 });
 const dateQuery = z.object({ date: z.iso.date().optional() });
+
+/** So viele Tage im Voraus dürfen Routinen-Aufgaben schon abgehakt werden. */
+const MAX_DAYS_AHEAD = 7;
 
 export async function taskRoutes(app: FastifyInstance, { db, bus, config }: Ctx) {
 	const tz = config.TZ;
@@ -124,7 +136,22 @@ export async function taskRoutes(app: FastifyInstance, { db, bus, config }: Ctx)
 			db,
 			tasks.map((t) => t.id)
 		);
-		return { date, today: now, tasks: tasks.map((t) => taskDto(t, assignees, now)) };
+		const planned = date > now ? plannedRoutineTasks(db, date) : [];
+		return {
+			date,
+			today: now,
+			tasks: tasks.map((t) => taskDto(t, assignees, now)),
+			planned: planned.map((p) => ({
+				routineId: p.routine.id,
+				title: p.routine.title,
+				icon: p.routine.icon,
+				dueDate: p.due,
+				timeSlot: p.routine.time_slot,
+				points: p.routine.points,
+				requiresApproval: p.routine.requires_approval,
+				assignees: p.assignees
+			}))
+		};
 	});
 
 	app.get('/tasks/approvals', { preHandler: requireReader }, async () => ({
@@ -190,6 +217,34 @@ export async function taskRoutes(app: FastifyInstance, { db, bus, config }: Ctx)
 				today: today()
 			});
 			changed(true);
+		});
+	});
+
+	// Vorab abhaken: legt die Routinen-Aufgabe des künftigen Tages an und hakt sie ab
+	app.post('/routines/:id/done', { preHandler: requirePerson }, async (req, reply) => {
+		const p = parse(idParam, req.params, reply);
+		const b = p && parse(plannedDoneBody, req.body, reply);
+		if (!p || !b) return;
+		const me = req.person!;
+		if (me.id !== b.personId && me.role !== 'parent')
+			return reply.code(403).send({ error: 'not allowed' });
+		return handle(reply, () => {
+			const now = today();
+			const ahead = daysBetween(now, b.date);
+			if (ahead < 1) throw new AppError(409, 'not in future');
+			if (ahead > MAX_DAYS_AHEAD) throw new AppError(409, 'too early');
+			const taskId = materializeRoutineTask(db, p.id, b.date);
+			if (taskId === null) throw new AppError(404, 'not found');
+			setDone(db, {
+				taskId,
+				personId: b.personId,
+				done: true,
+				byParent: me.role === 'parent',
+				by: me.id,
+				today: now
+			});
+			changed(true);
+			return { taskId };
 		});
 	});
 
