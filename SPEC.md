@@ -1,0 +1,175 @@
+# Familien-Kommandozentrale – Spezifikation
+
+Selbst gehostete Alternative zum Dæly® Calendar. Eine PWA für Wand-Tablet und Familienhandys.
+
+## 1. Ziele & Nicht-Ziele
+
+**Ziele**
+- Ein zentraler Ort für Termine, Aufgaben, Punkte, Listen und Essensplan
+- Bedienung durch Kinder im Schulalter ohne Hilfe
+- Echtzeit-Sync zwischen Tablet und Handys
+- Läuft vollständig auf eigener Infrastruktur (Unraid); externe Dienste nur Google (Kalender) und Cloudflare (Tunnel)
+
+**Nicht-Ziele (v1)**
+- Native Apps (nur PWA)
+- Mehrere Familien/Mandanten
+- Eigene Rezeptverwaltung (übernimmt Mealie)
+- Offline-Bearbeitung auf Handys (nur Lesen aus Cache)
+
+## 2. Nutzer & Rollen
+
+| Rolle | Personen | Rechte |
+|---|---|---|
+| Elternteil | 2 | alles: Personen, Kalender, Aufgaben, Punkte vergeben/abziehen, Belohnungen freigeben, Einstellungen |
+| Kind | 2 (Schulalter) | eigene Termine anlegen, Aufgaben abhaken, Belohnung anfragen, Listen bearbeiten |
+| Tablet (Gerät) | 1 | Anzeige für alle; Aktionen erfordern Personen-Auswahl, geschützte Aktionen Eltern-PIN |
+
+Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
+
+## 3. Infrastruktur
+
+| Komponente | Wo | Erreichbar |
+|---|---|---|
+| `kommandozentrale` (App + API) | Unraid Docker | LAN direkt + `https://<sub>.<domain>` über Tunnel |
+| `mealie` | Unraid Docker | nur intern (Docker-Netz) |
+| `cloudflared` | Unraid Docker | ausgehend zu Cloudflare |
+
+- Persistenz: `/mnt/user/appdata/kommandozentrale/` (SQLite-DB, Uploads, Secrets)
+- Cloudflare Access vor der öffentlichen Subdomain: E-Mail-Allowlist (4 Personen), Login per OTP/Google, Session z. B. 30 Tage
+- Tablet nutzt die LAN-URL (kein Access). Die App muss beide Wege unterstützen.
+- Docker Compose oder Unraid-Templates; alle Secrets per Env-Datei, nie im Repo
+
+## 4. Tech-Stack
+
+| Schicht | Wahl |
+|---|---|
+| Backend | Node.js + Fastify (Alternative: FastAPI) |
+| DB | SQLite (WAL), Migrationen versioniert |
+| Frontend | SvelteKit, statisch gebaut, PWA (Manifest + Service Worker) |
+| Echtzeit | Server-Sent Events (Fallback: Polling 30 s) |
+| Push | Web Push (VAPID) |
+| Tablet-Ton/TTS | Fully Kiosk JS-Interface (`fully.*`) |
+| Kalender | Google Calendar API (OAuth 2.0); iCloud/CalDAV vorerst nicht (ggf. später) |
+| Essen | Mealie REST-API (Token) |
+
+**Zielplattform-Constraint:** Fire HD 8 (2020), Fire OS 7, 2 GB RAM, 1280×800. Frontend-Bundle klein halten, keine schweren Animationen, Build-Target auf die gemessene WebView-Version setzen (Phase 0).
+
+## 5. Funktionen
+
+### 5.1 Kalender
+- Quellen: gemeinsamer Google-Familienkalender + persönliche Kalender (Google) je Person
+- Zuordnung Kalender → Person (Farbe); Familienkalender → „Alle“
+- **Lesen:** Sync alle 2–5 min + manuell; Zeitraum −30 bis +180 Tage
+- **Schreiben:** Anlegen/Ändern/Löschen am Tablet/Handy → direkt an die Quelle (write-through), danach lokaler Cache
+- Externe Quelle ist führend. Konflikte über `etag`/`updated` (Google); bei Konflikt gewinnt die Quelle, Nutzer bekommt Hinweis
+- Ganztags-, wiederkehrende Termine (RRULE) anzeigen; Bearbeiten von Serien in v1: nur „ganze Serie“
+- Ansichten: Heute (Default, Spalten pro Person), Woche, Agenda
+- Bearbeitungsschutz: externe Termine von Kindern nicht änderbar (konfigurierbar)
+
+### 5.2 Aufgaben & Routinen
+- Aufgabe: Titel, Person(en), Fälligkeit, Punkte, optional Icon
+- Routine: wiederkehrende Aufgabenvorlage (täglich / Wochentage / wöchentlich), Zeitfenster (Morgen/Nachmittag/Abend)
+- Abhaken durch zugewiesene Person; optional „Eltern bestätigen“ pro Aufgabe
+- Tagesansicht pro Kind mit Fortschritt
+
+### 5.3 Punkte & Belohnungen
+- Punktekonto pro Person als **Ledger** (jede Buchung mit Grund, Quelle, Zeit) – Saldo = Summe
+- Buchungen: Aufgabe erledigt/bestätigt, Bonus/Abzug durch Eltern, Belohnung eingelöst
+- Belohnungen: Titel, Kosten, optional Limit/Woche
+- Ablauf: Kind fragt an → Eltern geben frei → Punkte abgebucht
+
+### 5.4 Listen
+- Beliebige eigene Listen (Urlaub, Projekte …): Einträge, abhaken, sortieren
+- **Einkaufsliste = Mealie-Einkaufsliste** (gelesen/geschrieben über API, nicht dupliziert)
+
+### 5.5 Essensplan (Mealie)
+- Wochenansicht des Mealie-Mealplans (Frühstück/Mittag/Abend)
+- Rezept-Detail (Zutaten, Schritte) lesend anzeigen
+- Aktion „Zutaten der Woche auf Einkaufsliste“ (Mealie-Funktion)
+- Rezeptpflege erfolgt in Mealie selbst
+
+### 5.6 Erinnerungen
+- Pro Termin/Aufgabe: Zeitpunkt(e) vorher
+- Kanäle: Web Push an zugewiesene Personen, Ton/TTS am Tablet
+- Ruhezeiten (z. B. 21:00–06:30) für Tablet-Ton
+
+### 5.7 Bilderrahmen & Display
+- Nach X min Inaktivität Bilderrahmen (Fotos aus Upload-Ordner bzw. Unraid-Share)
+- Nachtmodus: Display dunkel/aus (Fully Kiosk), Wake bei Bewegung (Fully-Kamera)
+- Optional: Wetter- und Energie-Kachel aus Home Assistant (HA-WebSocket, Long-Lived Token)
+
+## 6. Datenmodell (Entwurf)
+
+| Tabelle | Wichtige Felder |
+|---|---|
+| `person` | id, name, color, avatar_path, role (parent/child), pin_hash, email |
+| `calendar_source` | id, type (google; erweiterbar), account_ref, remote_id, person_id NULL (=Alle), color, writable, sync_token |
+| `event` | id, source_id, remote_id, etag, title, start, end, all_day, rrule, location, updated_at |
+| `task` | id, title, due_at, points, requires_approval, routine_id NULL, created_by |
+| `task_assignee` | task_id, person_id, status (open/done/approved), done_at |
+| `routine` | id, title, schedule (JSON), time_slot, points, active |
+| `points_ledger` | id, person_id, delta, reason, ref_type, ref_id, created_by, created_at |
+| `reward` | id, title, cost, weekly_limit, active |
+| `redemption` | id, reward_id, person_id, status (requested/approved/rejected), decided_by |
+| `list` / `list_item` | id, title / id, list_id, text, done, sort |
+| `reminder` | id, ref_type, ref_id, offset_min, channels, last_fired |
+| `push_subscription` | id, person_id, endpoint, keys |
+| `setting` | key, value |
+
+## 7. API (Entwurf)
+
+REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
+
+| Bereich | Endpunkte |
+|---|---|
+| Auth | `POST /session` (person_id + PIN), `DELETE /session` |
+| Personen | `GET/POST/PATCH /persons` |
+| Kalender | `GET /events?from&to`, `POST/PATCH/DELETE /events/:id`, `POST /calendars/sync` |
+| Aufgaben | `GET/POST/PATCH /tasks`, `POST /tasks/:id/done`, `POST /tasks/:id/approve` |
+| Routinen | `GET/POST/PATCH /routines` |
+| Punkte | `GET /points/:person`, `POST /points` (nur Eltern) |
+| Belohnungen | `GET/POST /rewards`, `POST /rewards/:id/redeem`, `POST /redemptions/:id/decide` |
+| Listen | `GET/POST/PATCH/DELETE /lists`, `/lists/:id/items` |
+| Essen | `GET /meals?week`, `GET /recipes/:slug`, `GET/PATCH /shopping` (Proxy zu Mealie) |
+| Push | `POST /push/subscribe` |
+
+## 8. Sicherheit
+
+- Öffentlicher Zugang nur über Cloudflare Access; App prüft zusätzlich `Cf-Access-Jwt-Assertion` bei Zugriff über die öffentliche Domain
+- LAN-Zugang (Tablet) nur aus definiertem Subnetz/IP
+- PINs gehasht (argon2/bcrypt), Rate-Limit bei PIN-Eingabe
+- Google-Refresh-Token verschlüsselt at rest (Key aus Env)
+- Mealie und HA nie öffentlich; Zugriff nur serverseitig
+- Google-OAuth-App im Status „In Produktion“ (sonst 7-Tage-Token-Ablauf)
+
+## 9. UX-Richtlinien
+
+- Querformat 1280×800 als Primärziel; Handy-Layout responsiv
+- Touch-Ziele ≥ 48 px, Schrift ≥ 16 px, klare Personenfarben
+- Startseite „Heute“: Spalte pro Person mit Terminen + offenen Aufgaben + Punktestand
+- Navigation: Heute · Woche · Aufgaben · Essen · Listen · Belohnungen
+- Kind-Aktionen ohne Tippen von Text möglich (Icons, Auswahl)
+
+## 10. Phasen & Abnahmekriterien
+
+| Phase | Inhalt | Abnahme |
+|---|---|---|
+| 0 | Tablet: Fully Kiosk installieren, WebView-Version ermitteln | WebView-Version dokumentiert; Testseite (Svelte-Hello-World) läuft flüssig |
+| 1 | Repo, Container, DB/Migrationen, Personen/Rollen/PIN, PWA-Shell, SSE, Tunnel + Access | App über LAN und Subdomain erreichbar; Login per PIN; Änderung am Handy erscheint < 2 s am Tablet |
+| 2 | Kalender Google lesen/schreiben | Termin am Tablet angelegt erscheint in Google und umgekehrt (≤ 5 min); Familienkalender als „Alle“ |
+| 3 | Aufgaben, Routinen, Punkte-Ledger, Belohnungen | Routine erzeugt täglich Aufgaben; Abhaken bucht Punkte; Einlösung mit Eltern-Freigabe |
+| 4 | Eigene Listen | CRUD + Abhaken, Echtzeit-Sync |
+| 5 | Mealie: Essensplan, Rezepte, Einkaufsliste | Wochenplan sichtbar; Einkaufsliste in App = Mealie |
+| 6 | Erinnerungen (Push + Tablet), Bilderrahmen, Nachtmodus | Push kommt am Handy an; Tablet spielt Ton außerhalb der Ruhezeit; Bilderrahmen nach Inaktivität |
+| 7 | Feinschliff, Bearbeitungsschutz, Backup/Restore, optional HA-Kacheln, HA-Ladesteuerung Tablet 20–80 % | Restore aus Backup getestet; Kinder bedienen alle Kernfunktionen ohne Hilfe; Ladeautomation aktiv |
+
+## 11. Entscheidungen
+
+- Subdomain: `<PUBLIC_HOST>` (in Cloudflare noch anzulegen, Phase 1)
+- Kalender: alle Personen nutzen Google Calendar; iCloud/CalDAV entfällt in v1
+- Fotoquelle Bilderrahmen: eigener Ordner auf Unraid (Pfad folgt in Phase 6)
+- HA-Ladesteuerung: verschoben ans Ende (Phase 7)
+
+## 12. Offene Punkte
+
+- Montageort Tablet (beeinflusst Bewegungserkennung, Lautstärke)
