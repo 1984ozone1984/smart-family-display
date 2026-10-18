@@ -21,6 +21,7 @@ import { calendarRoutes } from './routes/calendars.ts';
 import { eventRoutes } from './routes/events.ts';
 import { googleRoutes } from './routes/google.ts';
 import { healthRoutes } from './routes/health.ts';
+import { listRoutes } from './routes/lists.ts';
 import { personRoutes } from './routes/persons.ts';
 import { rewardRoutes } from './routes/rewards.ts';
 import { sessionRoutes } from './routes/session.ts';
@@ -147,6 +148,7 @@ export async function buildApp(deps: AppDeps) {
 			await eventRoutes(api, ctx);
 			await taskRoutes(api, ctx);
 			await rewardRoutes(api, ctx);
+			await listRoutes(api, ctx);
 		},
 		{ prefix: '/api/v1' }
 	);
