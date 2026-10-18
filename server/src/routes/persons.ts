@@ -109,7 +109,8 @@ export async function personRoutes(app: FastifyInstance, { db, bus, config }: Ct
 		return { person: toDto(person!, true) };
 	});
 
-	app.get('/avatars/:file', { preHandler: requireReader }, async (req, reply) => {
+	// Ohne Session abrufbar (Login-Dialog); Zugriffsregel LAN/Access gilt trotzdem.
+	app.get('/avatars/:file', async (req, reply) => {
 		const { file } = req.params as { file: string };
 		const m = AVATAR_NAME.exec(file);
 		if (!m) return reply.code(404).send({ error: 'not found' });

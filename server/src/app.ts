@@ -88,7 +88,17 @@ export async function buildApp(deps: AppDeps) {
 
 	const webDir = deps.config.WEB_DIR;
 	if (webDir && existsSync(join(webDir, 'index.html'))) {
-		await app.register(fastifyStatic, { root: webDir, wildcard: false });
+		await app.register(fastifyStatic, {
+			root: webDir,
+			wildcard: false,
+			// Gehashte Bundles dürfen ewig gecacht werden, alles andere (index.html, SW) immer prüfen.
+			setHeaders: (res, path) => {
+				res.header(
+					'Cache-Control',
+					path.includes('/_app/immutable/') ? 'public, max-age=31536000, immutable' : 'no-cache'
+				);
+			}
+		});
 		// SPA: unbekannte Pfade außerhalb der API liefern die App-Shell.
 		app.setNotFoundHandler((req, reply) => {
 			if (req.url.startsWith('/api/')) return reply.code(404).send({ error: 'not found' });

@@ -1,0 +1,156 @@
+<script lang="ts">
+	import '../app.css';
+	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
+	import { page } from '$app/state';
+	import { onMount, type Snippet } from 'svelte';
+	import { app } from '#lib/app.svelte.ts';
+	import Avatar from '#lib/components/Avatar.svelte';
+	import LoginDialog from '#lib/components/LoginDialog.svelte';
+
+	let { children }: { children: Snippet } = $props();
+
+	let failed = $state(false);
+	let loginOpen = $state(false);
+	let now = $state(new Date());
+
+	onMount(() => {
+		app.init().catch(() => (failed = true));
+		const t = setInterval(() => (now = new Date()), 15_000);
+		return () => clearInterval(t);
+	});
+
+	$effect(() => {
+		if (app.ready && app.setupNeeded && page.url.pathname !== '/setup')
+			void goto(resolve('/setup'));
+	});
+
+	const NAV = [
+		{ path: '/', label: 'Heute' },
+		{ path: '/einstellungen', label: 'Einstellungen' }
+	] as const;
+	const time = $derived(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+	const date = $derived(
+		now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+	);
+</script>
+
+{#if failed}
+	<main class="center">
+		<p>Server nicht erreichbar.</p>
+		<button class="btn primary" onclick={() => location.reload()}>Neu laden</button>
+	</main>
+{:else if !app.ready}
+	<main class="center muted">Lädt …</main>
+{:else if app.needsLogin}
+	<main class="center"><LoginDialog title="Anmelden" /></main>
+{:else}
+	<header>
+		<div class="clock">
+			<strong>{time}</strong>
+			<span class="muted">{date}</span>
+		</div>
+		{#if !app.setupNeeded}
+			<nav>
+				{#each NAV as n (n.path)}
+					<a href={resolve(n.path)} class:active={page.url.pathname === n.path}>{n.label}</a>
+				{/each}
+			</nav>
+		{/if}
+		<div class="session">
+			<span class="live {app.live}" title="Synchronisation: {app.live}"></span>
+			{#if app.me}
+				<Avatar person={app.me} size={40} />
+				<span class="name">{app.me.name}</span>
+				<button class="btn" onclick={() => app.logout()}>Abmelden</button>
+			{:else if !app.setupNeeded}
+				<button class="btn" onclick={() => (loginOpen = true)}>Anmelden</button>
+			{/if}
+		</div>
+	</header>
+	<main>{@render children()}</main>
+	{#if loginOpen}
+		<LoginDialog onclose={() => (loginOpen = false)} ondone={() => (loginOpen = false)} />
+	{/if}
+{/if}
+
+<style>
+	header {
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		padding: 8px 16px;
+		background: var(--surface);
+		border-bottom: 1px solid var(--border);
+	}
+	.clock {
+		display: flex;
+		align-items: baseline;
+		gap: 10px;
+		white-space: nowrap;
+	}
+	.clock strong {
+		font-size: 28px;
+	}
+	nav {
+		display: flex;
+		gap: 4px;
+		margin: 0 auto;
+	}
+	nav a {
+		display: flex;
+		align-items: center;
+		min-height: 48px;
+		padding: 0 16px;
+		border-radius: 12px;
+		color: inherit;
+		text-decoration: none;
+		font-weight: 600;
+	}
+	nav a.active {
+		background: var(--surface-2);
+	}
+	.session {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-left: auto;
+	}
+	.live {
+		width: 10px;
+		height: 10px;
+		border-radius: 50%;
+		background: var(--danger);
+	}
+	.live.sse {
+		background: var(--ok);
+	}
+	.live.polling {
+		background: #d97706;
+	}
+	main {
+		padding: 16px;
+	}
+	.center {
+		min-height: 100vh;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 16px;
+	}
+	@media (max-width: 640px) {
+		header {
+			flex-wrap: wrap;
+		}
+		.clock span,
+		.name {
+			display: none;
+		}
+		nav {
+			order: 3;
+			width: 100%;
+			margin: 0;
+		}
+	}
+</style>

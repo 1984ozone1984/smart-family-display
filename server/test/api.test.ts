@@ -183,6 +183,61 @@ describe('API', () => {
 		expect(list.json().persons[0].email).toBe('mama@example.com');
 	});
 
+	it('Login-Auswahl öffentlich ohne Session, mit Vorschlag per Access-E-Mail', async () => {
+		const { app, sign } = await makeApp();
+		const parent = await setupParent(app);
+		await app.inject({
+			method: 'PATCH',
+			url: `/api/v1/persons/${parent.id}`,
+			...lan,
+			headers: { cookie: parent.cookie },
+			payload: { email: 'Mama@Example.com' }
+		});
+		const res = await app.inject({
+			url: '/api/v1/session/persons',
+			remoteAddress: TUNNEL_IP,
+			headers: {
+				host: PUBLIC_HOST,
+				'cf-access-jwt-assertion': await sign({ email: 'mama@example.com' })
+			}
+		});
+		expect(res.statusCode).toBe(200);
+		expect(res.json().suggestedId).toBe(parent.id);
+		expect(res.json().persons[0].email).toBeUndefined();
+	});
+
+	it('Sperre über den Tunnel gilt pro Client-IP, nicht für alle Handys', async () => {
+		const { app, sign } = await makeApp();
+		const parent = await setupParent(app);
+		const jwt = await sign();
+		const login = (clientIp: string, pin: string) =>
+			app.inject({
+				method: 'POST',
+				url: '/api/v1/session',
+				remoteAddress: TUNNEL_IP,
+				headers: {
+					host: PUBLIC_HOST,
+					'cf-access-jwt-assertion': jwt,
+					'cf-connecting-ip': clientIp
+				},
+				payload: { personId: 999, pin }
+			});
+		for (let i = 0; i < 5; i++) await login('203.0.113.1', '0000');
+		expect((await login('203.0.113.1', '0000')).statusCode).toBe(429);
+		const other = await app.inject({
+			method: 'POST',
+			url: '/api/v1/session',
+			remoteAddress: TUNNEL_IP,
+			headers: {
+				host: PUBLIC_HOST,
+				'cf-access-jwt-assertion': jwt,
+				'cf-connecting-ip': '203.0.113.2'
+			},
+			payload: { personId: parent.id, pin: '1111' }
+		});
+		expect(other.statusCode).toBe(200);
+	});
+
 	it('letzter Elternteil kann nicht zum Kind werden', async () => {
 		const { app } = await makeApp();
 		const parent = await setupParent(app);

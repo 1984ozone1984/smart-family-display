@@ -1,0 +1,95 @@
+:root {
+	--bg: #f1f5f9;
+	--surface: #ffffff;
+	--surface-2: #e2e8f0;
+	--border: #cbd5e1;
+	--text: #0f172a;
+	--text-muted: #64748b;
+	--accent: #2563eb;
+	--danger: #dc2626;
+	--ok: #16a34a;
+	--radius: 16px;
+	color-scheme: light;
+}
+
+* {
+	box-sizing: border-box;
+}
+
+html,
+body {
+	margin: 0;
+	height: 100%;
+}
+
+body {
+	background: var(--bg);
+	color: var(--text);
+	font:
+		18px/1.4 system-ui,
+		-apple-system,
+		'Segoe UI',
+		Roboto,
+		sans-serif;
+	-webkit-tap-highlight-color: transparent;
+	user-select: none;
+}
+
+input,
+textarea {
+	user-select: text;
+}
+
+button {
+	font: inherit;
+	color: inherit;
+	border: 0;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: default;
+}
+
+.btn {
+	min-height: 48px;
+	padding: 0 20px;
+	border-radius: 12px;
+	background: var(--surface-2);
+	font-weight: 600;
+}
+
+.btn.primary {
+	background: var(--accent);
+	color: #fff;
+}
+
+.card {
+	background: var(--surface);
+	border-radius: var(--radius);
+	padding: 16px;
+}
+
+.muted {
+	color: var(--text-muted);
+}
+
+label {
+	display: block;
+	font-weight: 600;
+	margin: 12px 0 6px;
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'] {
+	width: 100%;
+	min-height: 48px;
+	padding: 0 12px;
+	font: inherit;
+	border: 2px solid var(--border);
+	border-radius: 12px;
+	background: var(--surface);
+}
