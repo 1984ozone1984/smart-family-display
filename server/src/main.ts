@@ -21,7 +21,8 @@ const verify =
 
 const app = await buildApp({ config, db, bus, verify, logger: true });
 if (ran.length) app.log.info({ migrations: ran }, 'Migrationen angewendet');
-if (!verify) app.log.warn('Kein Cloudflare Access konfiguriert: nur LAN-Zugriff möglich');
+if (!verify)
+	app.log.warn('Cloudflare Access nicht konfiguriert: öffentlicher Zugang gesperrt, nur LAN');
 
 purgeExpiredSessions(db);
 setInterval(() => purgeExpiredSessions(db), 3_600_000).unref();

@@ -32,3 +32,24 @@ describe('migrate', () => {
 		expect(versions.map((v) => v.version)).toEqual(['001_ok.sql']);
 	});
 });
+
+describe('loadConfig', () => {
+	it('leere Werte gelten als nicht gesetzt', async () => {
+		const { loadConfig } = await import('../src/config.ts');
+		const c = loadConfig({
+			LAN_SUBNETS: '192.168.1.0/24',
+			CF_ACCESS_AUD: '',
+			PUBLIC_HOST: 'x.example'
+		});
+		expect(c.CF_ACCESS_AUD).toBeUndefined();
+		expect(c.LAN_SUBNETS).toEqual(['192.168.1.0/24']);
+	});
+
+	it('Access nur vollständig konfigurierbar', async () => {
+		const { loadConfig } = await import('../src/config.ts');
+		expect(() => loadConfig({ LAN_SUBNETS: '10.0.0.0/8', CF_ACCESS_AUD: 'a' })).toThrow(
+			/gemeinsam/
+		);
+		expect(() => loadConfig({})).toThrow(/LAN_SUBNETS/);
+	});
+});

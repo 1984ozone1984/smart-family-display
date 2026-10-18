@@ -31,10 +31,10 @@ const schema = z
 		SESSION_TTL_PUBLIC_DAYS: z.coerce.number().positive().default(90)
 	})
 	.superRefine((c, ctx) => {
-		if (c.PUBLIC_HOST && (!c.CF_ACCESS_TEAM_DOMAIN || !c.CF_ACCESS_AUD)) {
+		if (!!c.CF_ACCESS_TEAM_DOMAIN !== !!c.CF_ACCESS_AUD) {
 			ctx.addIssue({
 				code: 'custom',
-				message: 'PUBLIC_HOST gesetzt: CF_ACCESS_TEAM_DOMAIN und CF_ACCESS_AUD sind Pflicht'
+				message: 'CF_ACCESS_TEAM_DOMAIN und CF_ACCESS_AUD nur gemeinsam setzen'
 			});
 		}
 		if (c.LAN_SUBNETS.length === 0 && !c.PUBLIC_HOST) {
@@ -45,7 +45,9 @@ const schema = z
 export type Config = z.infer<typeof schema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-	const result = schema.safeParse(env);
+	// Leere Werte (`KEY=`) gelten als nicht gesetzt
+	const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== ''));
+	const result = schema.safeParse(cleaned);
 	if (!result.success) {
 		const msg = result.error.issues
 			.map((i) => `  ${i.path.join('.') || '(config)'}: ${i.message}`)
