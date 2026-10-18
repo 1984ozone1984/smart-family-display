@@ -19,7 +19,12 @@ const schema = z
 
 		// Öffentlicher Zugang über Cloudflare Tunnel + Access
 		PUBLIC_HOST: z.string().optional(),
-		CF_ACCESS_TEAM_DOMAIN: z.url().optional(),
+		// Toleriert fehlendes https:// und Schrägstrich am Ende: "team.cloudflareaccess.com" reicht
+		CF_ACCESS_TEAM_DOMAIN: z
+			.string()
+			.transform((v) => (/^https?:\/\//.test(v) ? v : `https://${v}`).replace(/\/+$/, ''))
+			.pipe(z.url({ message: 'erwartet z. B. https://<team>.cloudflareaccess.com' }))
+			.optional(),
 		CF_ACCESS_AUD: z.string().optional(),
 		// IPs, von denen der Tunnel (cloudflared) die App erreicht – nie als LAN vertraut
 		TUNNEL_SOURCE_IPS: list,
@@ -45,8 +50,12 @@ const schema = z
 export type Config = z.infer<typeof schema>;
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
-	// Leere Werte (`KEY=`) gelten als nicht gesetzt
-	const cleaned = Object.fromEntries(Object.entries(env).filter(([, v]) => v !== ''));
+	// Leerzeichen, \r und umschließende Anführungszeichen entfernen; leere Werte gelten als nicht gesetzt
+	const cleaned = Object.fromEntries(
+		Object.entries(env)
+			.map(([k, v]) => [k, v?.trim().replace(/^(['"])(.*)\1$/, '$2')] as const)
+			.filter(([, v]) => v !== undefined && v !== '')
+	);
 	const result = schema.safeParse(cleaned);
 	if (!result.success) {
 		const msg = result.error.issues

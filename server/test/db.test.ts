@@ -52,4 +52,20 @@ describe('loadConfig', () => {
 		);
 		expect(() => loadConfig({})).toThrow(/LAN_SUBNETS/);
 	});
+
+	it('Team-Domain ohne https://, mit Anführungszeichen oder \\r wird korrigiert', async () => {
+		const { loadConfig } = await import('../src/config.ts');
+		for (const v of [
+			'team.cloudflareaccess.com',
+			'"https://team.cloudflareaccess.com/"',
+			'https://team.cloudflareaccess.com\r'
+		]) {
+			const c = loadConfig({
+				LAN_SUBNETS: '10.0.0.0/8',
+				CF_ACCESS_TEAM_DOMAIN: v,
+				CF_ACCESS_AUD: 'a'
+			});
+			expect(c.CF_ACCESS_TEAM_DOMAIN).toBe('https://team.cloudflareaccess.com');
+		}
+	});
 });
