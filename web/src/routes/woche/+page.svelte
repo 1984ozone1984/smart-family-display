@@ -7,7 +7,7 @@
 	import EventItem from '#lib/components/EventItem.svelte';
 
 	let week = $state(startOfWeek(new Date()));
-	let dialog = $state<{ event?: CalEvent; date: Date } | null>(null);
+	let dialog = $state<{ event?: CalEvent; date: Date; edit?: boolean } | null>(null);
 
 	$effect(() => void cal.show(week, addDays(week, 7)));
 
@@ -44,7 +44,12 @@
 			</header>
 			<div class="list">
 				{#each eventsOnDay(cal.events, d) as e (e.id)}
-					<EventItem event={e} day={d} onclick={(event) => (dialog = { event, date: d })} />
+					<EventItem
+						event={e}
+						day={d}
+						onclick={(event) => (dialog = { event, date: d })}
+						onlongpress={(event) => (dialog = { event, date: d, edit: true })}
+					/>
 				{/each}
 			</div>
 		</section>
@@ -52,7 +57,12 @@
 </div>
 
 {#if dialog}
-	<EventDialog event={dialog.event ?? null} date={dialog.date} onclose={() => (dialog = null)} />
+	<EventDialog
+		event={dialog.event ?? null}
+		edit={dialog.edit ?? false}
+		date={dialog.date}
+		onclose={() => (dialog = null)}
+	/>
 {/if}
 
 <style>

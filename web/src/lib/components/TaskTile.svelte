@@ -1,14 +1,17 @@
 <script lang="ts">
 	import type { Task } from '../api.ts';
+	import { longpress } from '../longpress.ts';
 
 	let {
 		task,
 		status,
-		onclick
+		onclick,
+		onlongpress
 	}: {
 		task: Task;
 		status: 'open' | 'done' | 'approved';
 		onclick: () => void;
+		onlongpress?: () => void;
 	} = $props();
 
 	const pending = $derived(status === 'done' && task.requiresApproval);
@@ -23,6 +26,7 @@
 	class="tile"
 	class:done={status !== 'open'}
 	{onclick}
+	{@attach onlongpress && longpress(onlongpress)}
 	aria-pressed={status !== 'open'}
 	aria-label="{task.title}, {label}"
 >

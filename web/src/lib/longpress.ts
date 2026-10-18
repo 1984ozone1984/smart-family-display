@@ -3,6 +3,8 @@ import type { Attachment } from 'svelte/attachments';
 const HOLD_MS = 550;
 /** Mehr Bewegung gilt als Scrollen, nicht als Halten */
 const SLOP_PX = 12;
+/** Bei verschachtelten Elementen gewinnt das innerste (Termin/Aufgabe vor der Spalte) */
+const claimed = new WeakSet<Event>();
 
 /**
  * Langes Drücken (Finger oder Maus) auf dem Element. Der Klick, der danach beim Loslassen
@@ -19,7 +21,8 @@ export function longpress(fn: () => void): Attachment<HTMLElement> {
 			timer = null;
 		};
 		const down = (e: PointerEvent) => {
-			if (e.button !== 0) return;
+			if (e.button !== 0 || claimed.has(e)) return;
+			claimed.add(e);
 			fired = false;
 			start = { x: e.clientX, y: e.clientY };
 			cancel();

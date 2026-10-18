@@ -10,20 +10,25 @@
 		event = null,
 		date = new Date(),
 		personId = null,
+		edit = false,
 		onclose
 	}: {
 		event?: CalEvent | null;
 		date?: Date;
 		personId?: number | null;
+		/** Vorhandenen Termin gleich zum Bearbeiten öffnen (langes Drücken) */
+		edit?: boolean;
 		onclose: () => void;
 	} = $props();
 
-	const initial = untrack(() => ({ event, date, personId }));
+	const initial = untrack(() => ({ event, date, personId, edit }));
 	const ev = initial.event;
 	const pad = (n: number) => String(n).padStart(2, '0');
 	const hm = (d: Date) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-	let mode = $state<'view' | 'edit' | 'login' | 'confirm-delete'>(ev ? 'view' : 'edit');
+	let mode = $state<'view' | 'edit' | 'login' | 'confirm-delete'>(
+		!ev ? 'edit' : !initial.edit ? 'view' : app.me ? 'edit' : 'login'
+	);
 	let afterLogin: 'edit' | 'confirm-delete' = 'edit';
 	let busy = $state(false);
 	let error = $state('');
@@ -243,6 +248,11 @@
 
 					<p class="error" role="alert">{error}</p>
 					<div class="actions">
+						{#if ev}
+							<button class="btn danger" type="button" onclick={() => (mode = 'confirm-delete')}>
+								Löschen
+							</button>
+						{/if}
 						<button class="btn" type="button" onclick={() => (ev ? (mode = 'view') : onclose())}>
 							Abbrechen
 						</button>

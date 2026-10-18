@@ -2,9 +2,19 @@
 	import type { CalEvent } from '../api.ts';
 	import { cal } from '../calendar.svelte.ts';
 	import { fmtRange } from '../dates.ts';
+	import { longpress } from '../longpress.ts';
 
-	let { event, day, onclick }: { event: CalEvent; day?: Date; onclick: (e: CalEvent) => void } =
-		$props();
+	let {
+		event,
+		day,
+		onclick,
+		onlongpress
+	}: {
+		event: CalEvent;
+		day?: Date;
+		onclick: (e: CalEvent) => void;
+		onlongpress?: (e: CalEvent) => void;
+	} = $props();
 </script>
 
 <button
@@ -12,6 +22,7 @@
 	class:allday={event.allDay}
 	style="--c:{cal.colorOf(event)}"
 	onclick={() => onclick(event)}
+	{@attach onlongpress && longpress(() => onlongpress(event))}
 >
 	<span class="time">{fmtRange(event, day)}</span>
 	<span class="title">{event.title}</span>

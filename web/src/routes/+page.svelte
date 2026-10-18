@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { CalEvent, Person } from '#lib/api.ts';
+	import type { CalEvent, Person, Task } from '#lib/api.ts';
 	import { app } from '#lib/app.svelte.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
 	import { addDays, eventsOnDay, fmtDay, isoDate, sameDay, startOfDay } from '#lib/dates.ts';
@@ -7,18 +7,30 @@
 	import DayNav from '#lib/components/DayNav.svelte';
 	import EventDialog from '#lib/components/EventDialog.svelte';
 	import EventItem from '#lib/components/EventItem.svelte';
+	import LoginDialog from '#lib/components/LoginDialog.svelte';
 	import Modal from '#lib/components/Modal.svelte';
 	import ParentGate from '#lib/components/ParentGate.svelte';
+	import RoutineForm from '#lib/components/RoutineForm.svelte';
 	import TaskForm from '#lib/components/TaskForm.svelte';
 	import TaskTile from '#lib/components/TaskTile.svelte';
 	import { longpress } from '#lib/longpress.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 
 	let day = $state(startOfDay(new Date()));
-	let dialog = $state<{ event?: CalEvent; personId?: number | null } | null>(null);
+	let dialog = $state<{ event?: CalEvent; personId?: number | null; edit?: boolean } | null>(null);
 	// Langes Drücken in einer Spalte: Auswahl Termin oder Aufgabe für diese Person
 	let pressed = $state<Person | null>(null);
 	let newTaskFor = $state<Person | null>(null);
+	// Langes Drücken auf eine Aufgabe: bearbeiten (nur Eltern); geplante öffnen ihre Routine
+	let editTask = $state<Task | null>(null);
+	const editRoutine = $derived(
+		editTask?.plannedFor ? tasks.routines.find((r) => r.id === editTask?.routineId) : undefined
+	);
+
+	function holdTask(t: Task) {
+		editTask = t;
+		if (t.plannedFor) void tasks.loadRoutines();
+	}
 
 	$effect(() => void cal.show(day, addDays(day, 1)));
 
@@ -54,7 +66,12 @@
 		<h2>Alle</h2>
 		<div class="list">
 			{#each family as e (e.id)}
-				<EventItem event={e} {day} onclick={(event) => (dialog = { event })} />
+				<EventItem
+					event={e}
+					{day}
+					onclick={(event) => (dialog = { event })}
+					onlongpress={(event) => (dialog = { event, edit: true })}
+				/>
 			{/each}
 		</div>
 	</section>
@@ -80,7 +97,12 @@
 			</header>
 			<div class="list">
 				{#each forPerson(p.id) as e (e.id)}
-					<EventItem event={e} {day} onclick={(event) => (dialog = { event })} />
+					<EventItem
+						event={e}
+						{day}
+						onclick={(event) => (dialog = { event })}
+						onlongpress={(event) => (dialog = { event, edit: true })}
+					/>
 				{:else}
 					<p class="muted empty">Keine Termine</p>
 				{/each}
@@ -92,7 +114,12 @@
 						<span style="width:{(prog.done / prog.total) * 100}%"></span>
 					</div>
 					{#each mine as t (t.id)}
-						<TaskTile task={t} status={tasks.status(t, p.id)} onclick={() => tasks.tap(t, p.id)} />
+						<TaskTile
+							task={t}
+							status={tasks.status(t, p.id)}
+							onclick={() => tasks.tap(t, p.id)}
+							onlongpress={() => holdTask(t)}
+						/>
 					{/each}
 				</div>
 			{/if}
@@ -137,11 +164,26 @@
 	/>
 {/if}
 
+{#if editTask}
+	{#if !app.isParent}
+		<LoginDialog
+			parentsOnly
+			title="Bearbeiten: Elternteil wählen"
+			onclose={() => (editTask = null)}
+		/>
+	{:else if !editTask.plannedFor}
+		<TaskForm task={editTask} onclose={() => (editTask = null)} />
+	{:else if editRoutine}
+		<RoutineForm routine={editRoutine} onclose={() => (editTask = null)} />
+	{/if}
+{/if}
+
 {#if dialog}
 	<EventDialog
 		event={dialog.event ?? null}
 		date={day}
 		personId={dialog.personId ?? null}
+		edit={dialog.edit ?? false}
 		onclose={() => (dialog = null)}
 	/>
 {/if}

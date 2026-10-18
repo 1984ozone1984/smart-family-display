@@ -7,7 +7,7 @@
 
 	const DAYS = 30;
 	const from = startOfDay(new Date());
-	let dialog = $state<{ event?: CalEvent } | null>(null);
+	let dialog = $state<{ event?: CalEvent; edit?: boolean } | null>(null);
 
 	$effect(() => void cal.show(from, addDays(from, DAYS)));
 
@@ -28,7 +28,12 @@
 		<h2>{sameDay(g.d, new Date()) ? 'Heute' : fmtDay(g.d)}</h2>
 		<div class="list">
 			{#each g.events as e (e.id)}
-				<EventItem event={e} day={g.d} onclick={(event) => (dialog = { event })} />
+				<EventItem
+					event={e}
+					day={g.d}
+					onclick={(event) => (dialog = { event })}
+					onlongpress={(event) => (dialog = { event, edit: true })}
+				/>
 			{/each}
 		</div>
 	</section>
@@ -37,7 +42,11 @@
 {/each}
 
 {#if dialog}
-	<EventDialog event={dialog.event ?? null} onclose={() => (dialog = null)} />
+	<EventDialog
+		event={dialog.event ?? null}
+		edit={dialog.edit ?? false}
+		onclose={() => (dialog = null)}
+	/>
 {/if}
 
 <style>
