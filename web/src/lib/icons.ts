@@ -1,0 +1,61 @@
+/** Feste Auswahl, damit niemand tippen muss */
+export const TASK_ICONS = [
+	'🪥',
+	'🛏️',
+	'👕',
+	'🧦',
+	'🎒',
+	'📚',
+	'✏️',
+	'🎹',
+	'🎻',
+	'⚽',
+	'🏊',
+	'🚴',
+	'🧹',
+	'🧽',
+	'🍽️',
+	'🗑️',
+	'♻️',
+	'🐶',
+	'🐱',
+	'🌱',
+	'🧺',
+	'🛁',
+	'💊',
+	'🥦',
+	'🍎',
+	'📖',
+	'🧸',
+	'🚗',
+	'📬',
+	'⭐'
+];
+export const REWARD_ICONS = [
+	'🎮',
+	'📺',
+	'📱',
+	'🍦',
+	'🍫',
+	'🍕',
+	'🎬',
+	'🎁',
+	'🧩',
+	'🎨',
+	'⚽',
+	'🏊',
+	'🛝',
+	'🎡',
+	'💶',
+	'🕹️',
+	'📚',
+	'🌙',
+	'🧁',
+	'⭐'
+];
+export const SLOT_LABEL = {
+	morning: 'Morgens',
+	afternoon: 'Nachmittags',
+	evening: 'Abends'
+} as const;
+export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];

@@ -1,6 +1,14 @@
 import { api, ApiError, type Person, type Via } from './api.ts';
 
 const POLL_MS = 30_000;
+const SERVER_EVENTS = [
+	'events.changed',
+	'calendars.changed',
+	'tasks.changed',
+	'points.changed',
+	'rewards.changed'
+] as const;
+export type ServerEvent = (typeof SERVER_EVENTS)[number];
 /** Am Tablet: angemeldete Person nach dieser Zeit ohne Bedienung wieder abmelden. */
 const TABLET_IDLE_MS = 2 * 60_000;
 
@@ -86,12 +94,11 @@ class AppState {
 			this.#startPolling();
 		};
 		es.addEventListener('persons.changed', () => void this.loadPersons());
-		for (const type of ['events.changed', 'calendars.changed'])
-			es.addEventListener(type, () => this.#emit(type));
+		for (const type of SERVER_EVENTS) es.addEventListener(type, () => this.#emit(type));
 	}
 
 	/** Andere Bereiche (Kalender …) melden sich hier für Server-Ereignisse an. */
-	on(type: 'events.changed' | 'calendars.changed', fn: () => void): () => void {
+	on(type: ServerEvent, fn: () => void): () => void {
 		let set = this.#listeners.get(type);
 		// Reine Callback-Registry, muss nicht reaktiv sein
 		// eslint-disable-next-line svelte/prefer-svelte-reactivity
@@ -106,8 +113,7 @@ class AppState {
 
 	#refreshAll() {
 		void this.loadPersons();
-		this.#emit('events.changed');
-		this.#emit('calendars.changed');
+		for (const type of SERVER_EVENTS) this.#emit(type);
 	}
 
 	#startPolling() {

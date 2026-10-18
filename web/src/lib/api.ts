@@ -44,6 +44,68 @@ export type GoogleAccount = {
 	status: 'ok' | 'revoked';
 };
 
+export type Slot = 'morning' | 'afternoon' | 'evening';
+export type Task = {
+	id: number;
+	title: string;
+	icon: string | null;
+	dueDate: string | null;
+	availableFrom: string | null;
+	timeSlot: Slot | null;
+	points: number;
+	requiresApproval: boolean;
+	routineId: number | null;
+	overdue: boolean;
+	assignees: { personId: number; status: 'open' | 'done' | 'approved'; doneAt: string | null }[];
+};
+export type Schedule =
+	{ type: 'daily' } | { type: 'weekdays'; days: number[] } | { type: 'weekly' };
+export type Routine = {
+	id: number;
+	title: string;
+	icon: string | null;
+	schedule: Schedule;
+	timeSlot: Slot;
+	points: number;
+	requiresApproval: boolean;
+	active: boolean;
+	assignees: number[];
+};
+export type Approval = {
+	taskId: number;
+	title: string;
+	icon: string | null;
+	points: number;
+	personId: number;
+	doneAt: string | null;
+};
+export type Reward = {
+	id: number;
+	title: string;
+	icon: string | null;
+	cost: number;
+	weeklyLimit: number | null;
+	active: boolean;
+};
+export type Redemption = {
+	id: number;
+	rewardId: number;
+	title: string;
+	icon: string | null;
+	cost: number;
+	personId: number;
+	status: 'requested' | 'approved' | 'rejected' | 'cancelled';
+	requestedAt: string;
+	decidedAt: string | null;
+};
+export type LedgerEntry = {
+	id: number;
+	delta: number;
+	reason: string;
+	refType: 'task' | 'bonus' | 'redemption';
+	createdAt: string;
+};
+
 export class ApiError extends Error {
 	constructor(
 		public status: number,

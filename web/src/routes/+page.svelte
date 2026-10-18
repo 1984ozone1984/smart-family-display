@@ -7,6 +7,8 @@
 	import DayNav from '#lib/components/DayNav.svelte';
 	import EventDialog from '#lib/components/EventDialog.svelte';
 	import EventItem from '#lib/components/EventItem.svelte';
+	import TaskTile from '#lib/components/TaskTile.svelte';
+	import { tasks } from '#lib/tasks.svelte.ts';
 
 	let day = $state(startOfDay(new Date()));
 	let dialog = $state<{ event?: CalEvent; personId?: number | null } | null>(null);
@@ -26,6 +28,11 @@
 	const family = $derived(events.filter((e) => e.personId === null));
 	const forPerson = (id: number) => events.filter((e) => e.personId === id);
 	const isToday = $derived(sameDay(day, new Date()));
+	let notice = $state('');
+	async function toggle(t: Parameters<typeof tasks.toggle>[0], personId: number) {
+		notice = (await tasks.toggle(t, personId)) ?? '';
+		if (notice) setTimeout(() => (notice = ''), 4000);
+	}
 </script>
 
 <div class="toolbar">
@@ -38,6 +45,8 @@
 	/>
 	<button class="btn primary" onclick={() => (dialog = { personId: null })}>+ Termin</button>
 </div>
+
+{#if notice}<p class="notice" role="status">{notice}</p>{/if}
 
 {#if family.length}
 	<section class="family">
@@ -56,6 +65,7 @@
 			<header>
 				<Avatar person={p} size={48} />
 				<h2>{p.name}</h2>
+				<span class="star" title="Punkte">⭐ {tasks.balances[p.id] ?? 0}</span>
 				<button
 					class="add"
 					aria-label="Termin für {p.name}"
@@ -71,6 +81,22 @@
 					<p class="muted empty">Keine Termine</p>
 				{/each}
 			</div>
+			{#if isToday && tasks.forPerson(p.id).length}
+				{@const prog = tasks.progress(p.id)}
+				<div class="tasks">
+					<div class="bar" aria-label="{prog.done} von {prog.total} Aufgaben erledigt">
+						<span style="width:{(prog.done / prog.total) * 100}%"></span>
+					</div>
+					{#each tasks.forPerson(p.id) as t (t.id)}
+						<TaskTile
+							task={t}
+							status={tasks.status(t, p.id)}
+							compact
+							onclick={() => toggle(t, p.id)}
+						/>
+					{/each}
+				</div>
+			{/if}
 		</section>
 	{:else}
 		<p class="muted">Noch keine Personen angelegt.</p>
@@ -131,8 +157,36 @@
 		margin: 0;
 		font-size: 20px;
 	}
-	.add {
+	.star {
 		margin-left: auto;
+		font-weight: 700;
+		white-space: nowrap;
+	}
+	.notice {
+		background: #fef3c7;
+		border-radius: 12px;
+		padding: 8px 12px;
+	}
+	.tasks {
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+		margin-top: 12px;
+		padding-top: 10px;
+		border-top: 2px dashed var(--surface-2);
+	}
+	.bar {
+		height: 8px;
+		border-radius: 4px;
+		background: var(--surface-2);
+		overflow: hidden;
+	}
+	.bar span {
+		display: block;
+		height: 100%;
+		background: var(--ok);
+	}
+	.add {
 		width: 48px;
 		height: 48px;
 		border-radius: 50%;

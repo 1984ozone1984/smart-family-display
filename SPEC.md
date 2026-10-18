@@ -79,12 +79,16 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Routine: wiederkehrende Aufgabenvorlage (täglich / Wochentage / wöchentlich), Zeitfenster (Morgen/Nachmittag/Abend)
 - Abhaken durch zugewiesene Person; optional „Eltern bestätigen“ pro Aufgabe
 - Tagesansicht pro Kind mit Fortschritt
+- Routinen-Aufgaben verfallen nach ihrem Zeitraum (täglich: am Tagesende, wöchentlich: Sonntag) ohne Punkte; einmalige Aufgaben bleiben offen und werden als überfällig markiert
+- Am Tablet genügt Antippen zum Abhaken/Zurücknehmen und zum Anfragen von Belohnungen; Eltern-PIN nur für geschützte Aktionen (Anlegen, Bestätigen, Freigeben, Bonus/Abzug). Über die öffentliche Adresse handelt nur die angemeldete Person für sich (oder ein Elternteil)
+- Eltern können ebenfalls Aufgaben erhalten und Punkte sammeln
 
 ### 5.3 Punkte & Belohnungen
 - Punktekonto pro Person als **Ledger** (jede Buchung mit Grund, Quelle, Zeit) – Saldo = Summe
 - Buchungen: Aufgabe erledigt/bestätigt, Bonus/Abzug durch Eltern, Belohnung eingelöst
 - Belohnungen: Titel, Kosten, optional Limit/Woche
-- Ablauf: Kind fragt an → Eltern geben frei → Punkte abgebucht
+- Ablauf: Kind fragt an → Eltern geben frei → Punkte abgebucht. Offene Anfragen reservieren Punkte; bei Freigabe wird der Kontostand erneut geprüft
+- Wochenlimit pro Person, Woche Mo–So
 
 ### 5.4 Listen
 - Beliebige eigene Listen (Urlaub, Projekte …): Einträge, abhaken, sortieren
@@ -114,12 +118,13 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 | `google_account` | id, person_id, email, refresh_token_enc, status (ok/revoked) |
 | `calendar_source` | id, type (google; erweiterbar), account_id, remote_id (eindeutig → geteilter Kalender nur einmal), summary, person_id NULL (=Alle), color, enabled, writable, sync_token, full_synced_at |
 | `event` | id, source_id, remote_id, recurring_id, etag, title, description, location, start, end, all_day, rrule, range_start/range_end (UTC), created_by, updated_at |
-| `task` | id, title, due_at, points, requires_approval, routine_id NULL, created_by |
+| `task` | id, title, icon, available_from, due_date, time_slot, points, requires_approval, routine_id NULL, created_by; UNIQUE(routine_id, due_date) |
 | `task_assignee` | task_id, person_id, status (open/done/approved), done_at |
-| `routine` | id, title, schedule (JSON), time_slot, points, active |
-| `points_ledger` | id, person_id, delta, reason, ref_type, ref_id, created_by, created_at |
+| `routine` | id, title, icon, schedule (JSON: daily / weekdays / weekly), time_slot, points, requires_approval, active |
+| `routine_assignee` | routine_id, person_id |
+| `points_ledger` | id, person_id, delta, reason, ref_type (task/bonus/redemption), ref_id, created_by, created_at – append-only (DB-Trigger) |
 | `reward` | id, title, cost, weekly_limit, active |
-| `redemption` | id, reward_id, person_id, status (requested/approved/rejected), decided_by |
+| `redemption` | id, reward_id, person_id, status (requested/approved/rejected/cancelled), requested_at, decided_by, decided_at, ledger_id |
 | `list` / `list_item` | id, title / id, list_id, text, done, sort |
 | `reminder` | id, ref_type, ref_id, offset_min, channels, last_fired |
 | `push_subscription` | id, person_id, endpoint, keys |
@@ -137,10 +142,10 @@ REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
 | Personen | `GET/POST/PATCH /persons`, `POST /persons/:id/avatar`, `GET /avatars/:file` |
 | Kalender | `GET /events?from&to`, `POST /events`, `PATCH/DELETE /events/:id`, `GET /calendars`, `PATCH /calendars/:id`, `POST /calendars/sync`, `POST /calendars/discover` |
 | Google | `GET /google/status`, `GET /google/accounts`, `GET /google/connect`, `GET /google/callback`, `DELETE /google/accounts/:id` |
-| Aufgaben | `GET/POST/PATCH /tasks`, `POST /tasks/:id/done`, `POST /tasks/:id/approve` |
-| Routinen | `GET/POST/PATCH /routines` |
-| Punkte | `GET /points/:person`, `POST /points` (nur Eltern) |
-| Belohnungen | `GET/POST /rewards`, `POST /rewards/:id/redeem`, `POST /redemptions/:id/decide` |
+| Aufgaben | `GET/POST /tasks`, `PATCH/DELETE /tasks/:id`, `POST /tasks/:id/done`, `POST /tasks/:id/approve`, `GET /tasks/approvals` |
+| Routinen | `GET/POST /routines`, `PATCH /routines/:id` |
+| Punkte | `GET /points`, `GET /points/:person`, `POST /points` (nur Eltern) |
+| Belohnungen | `GET/POST /rewards`, `PATCH /rewards/:id`, `POST /rewards/:id/redeem`, `GET /redemptions`, `POST /redemptions/:id/decide`, `POST /redemptions/:id/cancel` |
 | Listen | `GET/POST/PATCH/DELETE /lists`, `/lists/:id/items` |
 | Essen | `GET /meals?week`, `GET /recipes/:slug`, `GET/PATCH /shopping` (Proxy zu Mealie) |
 | Push | `POST /push/subscribe` |

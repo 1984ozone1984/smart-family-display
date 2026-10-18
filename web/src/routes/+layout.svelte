@@ -6,6 +6,7 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { app } from '#lib/app.svelte.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
+	import { tasks } from '#lib/tasks.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import LoginDialog from '#lib/components/LoginDialog.svelte';
 
@@ -27,18 +28,23 @@
 	});
 
 	$effect(() => {
-		if (app.ready && !app.needsLogin && !app.setupNeeded) cal.start();
+		if (app.ready && !app.needsLogin && !app.setupNeeded) {
+			cal.start();
+			tasks.start();
+		}
 	});
 
 	const NAV = [
 		{ path: '/', label: 'Heute' },
 		{ path: '/woche', label: 'Woche' },
 		{ path: '/agenda', label: 'Agenda' },
-		{ path: '/einstellungen', label: 'Einstellungen' }
+		{ path: '/aufgaben', label: 'Aufgaben' },
+		{ path: '/belohnungen', label: 'Belohnungen' },
+		{ path: '/einstellungen', label: '⚙︎', title: 'Einstellungen' }
 	] as const;
 	const time = $derived(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
 	const date = $derived(
-		now.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
+		now.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'numeric' })
 	);
 </script>
 
@@ -60,7 +66,12 @@
 		{#if !app.setupNeeded}
 			<nav>
 				{#each NAV as n (n.path)}
-					<a href={resolve(n.path)} class:active={page.url.pathname === n.path}>{n.label}</a>
+					<a
+						href={resolve(n.path)}
+						class:active={page.url.pathname === n.path}
+						title={'title' in n ? n.title : undefined}
+						aria-label={'title' in n ? n.title : undefined}>{n.label}</a
+					>
 				{/each}
 			</nav>
 		{/if}
@@ -108,7 +119,7 @@
 		display: flex;
 		align-items: center;
 		min-height: 48px;
-		padding: 0 16px;
+		padding: 0 12px;
 		border-radius: 12px;
 		color: inherit;
 		text-decoration: none;
