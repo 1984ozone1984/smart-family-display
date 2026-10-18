@@ -59,3 +59,22 @@ export const SLOT_LABEL = {
 	evening: 'Abends'
 } as const;
 export const WEEKDAYS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
+
+export const LIST_ICONS = [
+	'📝',
+	'🏖️',
+	'🧳',
+	'🎄',
+	'🎁',
+	'🎂',
+	'🛠️',
+	'🏡',
+	'🌱',
+	'📚',
+	'🎬',
+	'🍳',
+	'⛺',
+	'🚗',
+	'💡',
+	'⭐'
+];

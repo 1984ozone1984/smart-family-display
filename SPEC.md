@@ -95,6 +95,8 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 
 ### 5.4 Listen
 - Beliebige eigene Listen (Urlaub, Projekte …): Einträge, abhaken, sortieren
+- Alle Listen sind gemeinsam (keine persönlichen Listen). Am Tablet ohne PIN: Listen und Einträge anlegen, abhaken, bearbeiten, sortieren, Erledigte entfernen; über das Handy jede angemeldete Person. Eine ganze Liste löschen nur Eltern
+- Sortieren per ↑/↓ im Bearbeiten-Modus (kein Drag & Drop wegen alter WebView); abgehakte Einträge stehen unten
 - **Einkaufsliste = Mealie-Einkaufsliste** (gelesen/geschrieben über API, nicht dupliziert)
 
 ### 5.5 Essensplan (Mealie)

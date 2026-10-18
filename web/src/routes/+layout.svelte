@@ -6,6 +6,7 @@
 	import { onMount, type Snippet } from 'svelte';
 	import { app } from '#lib/app.svelte.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
+	import { lists } from '#lib/lists.svelte.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import LoginDialog from '#lib/components/LoginDialog.svelte';
@@ -31,6 +32,7 @@
 		if (app.ready && !app.needsLogin && !app.setupNeeded) {
 			cal.start();
 			tasks.start();
+			lists.start();
 		}
 	});
 
@@ -40,6 +42,7 @@
 		{ path: '/agenda', label: 'Agenda' },
 		{ path: '/aufgaben', label: 'Aufgaben' },
 		{ path: '/belohnungen', label: 'Belohnungen' },
+		{ path: '/listen', label: 'Listen' },
 		{ path: '/einstellungen', label: '⚙︎', title: 'Einstellungen' }
 	] as const;
 	const time = $derived(now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
@@ -98,7 +101,9 @@
 			ondone={() => tasks.resumeAfterLogin()}
 		/>
 	{/if}
-	{#if tasks.notice}<p class="toast" role="status">{tasks.notice}</p>{/if}
+	{#if tasks.notice || lists.notice}
+		<p class="toast" role="status">{tasks.notice || lists.notice}</p>
+	{/if}
 {/if}
 
 <style>

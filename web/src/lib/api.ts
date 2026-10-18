@@ -70,6 +70,8 @@ export type PlannedTask = {
 	requiresApproval: boolean;
 	assignees: number[];
 };
+export type ListItem = { id: number; text: string; done: boolean };
+export type FamilyList = { id: number; title: string; icon: string | null; items: ListItem[] };
 export type Schedule =
 	{ type: 'daily' } | { type: 'weekdays'; days: number[] } | { type: 'weekly' };
 export type Routine = {
