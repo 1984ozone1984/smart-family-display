@@ -45,14 +45,19 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 |---|---|
 | Backend | Node.js + Fastify (Alternative: FastAPI) |
 | DB | SQLite (WAL), Migrationen versioniert |
-| Frontend | SvelteKit, statisch gebaut, PWA (Manifest + Service Worker) |
+| Frontend | SvelteKit, statisch gebaut, PWA (Manifest + Service Worker; Service Worker nur auf den Handys über HTTPS) |
 | Echtzeit | Server-Sent Events (Fallback: Polling 30 s) |
 | Push | Web Push (VAPID) |
 | Tablet-Ton/TTS | Fully Kiosk JS-Interface (`fully.*`) |
 | Kalender | Google Calendar API (OAuth 2.0); iCloud/CalDAV vorerst nicht (ggf. später) |
 | Essen | Mealie REST-API (Token) |
 
-**Zielplattform-Constraint:** Fire HD 8 (2020), Fire OS 7, 2 GB RAM, 1280×800. Frontend-Bundle klein halten, keine schweren Animationen, Build-Target auf die gemessene WebView-Version setzen (Phase 0).
+**Zielplattform-Constraint:** Fire HD 8 (2020), Fire OS 7, 2 GB RAM, 1280×800. Frontend-Bundle klein halten, keine schweren Animationen.
+
+**Gemessen in Phase 0** (Details: `docs/tablet.md`):
+- System-WebView Chrome 138, dadurch reicht als Build-Target der Vite-Standard (`baseline-widely-available`); kein Legacy-Build, keine Polyfills
+- Das Tablet ruft die App über HTTP im LAN auf (kein Secure Context), dort gibt es also **keinen Service Worker und kein Web Push**. Der Tablet-Betrieb darf nicht davon abhängen: Echtzeit per SSE, Ton/TTS und Bildschirm über `fully.*`
+- Kein `speechSynthesis` in der WebView, TTS daher nur über Fully
 
 ## 5. Funktionen
 
@@ -144,7 +149,7 @@ REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
 
 ## 9. UX-Richtlinien
 
-- Querformat 1280×800 als Primärziel; Handy-Layout responsiv
+- Querformat als Primärziel: 1280×800 physisch = ca. **960×600 CSS-px** (DPR 1,33); Handy-Layout responsiv
 - Touch-Ziele ≥ 48 px, Schrift ≥ 16 px, klare Personenfarben
 - Startseite „Heute“: Spalte pro Person mit Terminen + offenen Aufgaben + Punktestand
 - Navigation: Heute · Woche · Aufgaben · Essen · Listen · Belohnungen
