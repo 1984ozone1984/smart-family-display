@@ -122,15 +122,20 @@ export function createCalendarService(deps: {
 	}
 
 	return {
-		async create(p: SessionPerson, sourceId: number, input: EventInput): Promise<EventRow> {
+		/**
+		 * `p === null`: am Tablet ohne Anmeldung – jeder beschreibbare Kalender; der Termin gilt
+		 * als von der Kalender-Person angelegt (beim Familienkalender von niemandem).
+		 */
+		async create(p: SessionPerson | null, sourceId: number, input: EventInput): Promise<EventRow> {
 			const src = getSource(db, sourceId);
 			if (!src) throw new CalendarError(404, 'calendar not found');
-			if (!canWriteSource(p, src)) throw new CalendarError(403, 'not allowed');
+			const allowed = p ? canWriteSource(p, src) : src.enabled && src.writable;
+			if (!allowed) throw new CalendarError(403, 'not allowed');
 			const api = deps.apiFor(src.account_id);
 			const g = await guard(src, () =>
 				api.insertEvent(src.remote_id, { ...body(input), ...toGoogleTimes(input, tz) })
 			);
-			await settle(src, g, p.id);
+			await settle(src, g, p?.id ?? src.person_id ?? undefined);
 			return getEventByRemote(db, src.id, g.id)!;
 		},
 

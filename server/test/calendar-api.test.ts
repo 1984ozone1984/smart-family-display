@@ -237,6 +237,44 @@ describe('Termine schreiben', () => {
 		expect(del.statusCode).toBe(403);
 	});
 
+	it('Tablet ohne Anmeldung: Anlegen in jedem Kalender, Ändern nur mit PIN', async () => {
+		const w = await world();
+		await connect(w);
+		const ids = await enableAll(w);
+		const create = (sourceId: number, title: string, via: object = lan) =>
+			w.app.inject({
+				method: 'POST',
+				url: '/api/v1/events',
+				...via,
+				payload: {
+					sourceId,
+					title,
+					...timed('2026-10-22T15:00:00+02:00', '2026-10-22T16:00:00+02:00')
+				}
+			});
+
+		expect((await create(ids['familie@group']!, 'Grillen')).statusCode).toBe(201);
+		const forChild = await create(ids['kind@group']!, 'Schwimmen');
+		expect(forChild.statusCode).toBe(201);
+		const events = (await w.app.inject({ url: range, ...lan })).json().events;
+		expect(events).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ title: 'Grillen', createdBy: null }),
+				expect.objectContaining({ title: 'Schwimmen', createdBy: w.child.id })
+			])
+		);
+
+		const patch = await w.app.inject({
+			method: 'PATCH',
+			url: `/api/v1/events/${forChild.json().id}`,
+			...lan,
+			payload: { title: 'Geändert' }
+		});
+		expect(patch.statusCode).toBe(401);
+		const pub = { remoteAddress: TUNNEL_IP, headers: { host: PUBLIC_HOST } };
+		expect((await create(ids['familie@group']!, 'X', pub)).statusCode).toBe(401);
+	});
+
 	it('Konflikt: in Google zwischenzeitlich geändert → 409, Google-Stand gewinnt', async () => {
 		const w = await world();
 		await connect(w);

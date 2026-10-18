@@ -1,4 +1,4 @@
-import { api, type Calendar, type CalEvent, type Person } from './api.ts';
+import { api, type Calendar, type CalEvent, type Person, type Via } from './api.ts';
 import { app } from './app.svelte.ts';
 
 const FAMILY_COLOR = '#475569';
@@ -56,6 +56,12 @@ class CalendarState {
 	}
 
 	/** Kalender, in die `me` schreiben darf (wie serverseitig geprüft) */
+	/** Am Tablet (LAN) ohne Anmeldung darf jeder in jeden beschreibbaren Kalender eintragen. */
+	creatableFor(me: Person | null, via: Via): Calendar[] {
+		if (!me && via === 'lan') return this.calendars.filter((c) => c.enabled && c.writable);
+		return this.writableFor(me);
+	}
+
 	writableFor(me: Person | null): Calendar[] {
 		if (!me) return [];
 		return this.calendars.filter(

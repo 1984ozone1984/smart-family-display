@@ -72,6 +72,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Ganztags-, wiederkehrende Termine (RRULE) anzeigen; Bearbeiten von Serien in v1: nur „ganze Serie“
 - Ansichten: Heute (Default, Spalten pro Person), Woche, Agenda
 - Bearbeitungsschutz: externe Termine von Kindern nicht änderbar (konfigurierbar). v1: Kinder schreiben nur in ihren eigenen Kalender und ändern nur Termine, die sie in der App angelegt haben
+- Termin anlegen geht am Tablet ohne PIN, in jedem beschreibbaren Kalender; der Termin zählt dann als von der Kalender-Person angelegt (Familienkalender: von niemandem). Ändern und Löschen brauchen weiterhin eine Anmeldung
 - Jede Person verbindet ihr eigenes Google-Konto (OAuth über die öffentliche Domain); ein geteilter Familienkalender wird nur einmal synchronisiert
 
 ### 5.2 Aufgaben & Routinen

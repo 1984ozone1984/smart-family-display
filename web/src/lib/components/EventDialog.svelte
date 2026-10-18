@@ -52,7 +52,7 @@
 		endTime = `${pad(h + 1)}:00`;
 	}
 
-	const writable = $derived(cal.writableFor(app.me));
+	const writable = $derived(cal.creatableFor(app.me, app.via));
 	$effect(() => {
 		// Neuer Termin: Kalender der vorgewählten Person, sonst „Alle“, sonst der erste
 		if (sourceId !== null || writable.length === 0) return;

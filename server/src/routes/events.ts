@@ -78,12 +78,13 @@ export async function eventRoutes(app: FastifyInstance, ctx: Ctx) {
 		};
 	});
 
-	app.post('/events', { preHandler: requirePerson }, async (req, reply) => {
+	// Anlegen geht am Tablet (LAN) auch ohne PIN; Ändern und Löschen nicht
+	app.post('/events', { preHandler: requireReader }, async (req, reply) => {
 		const body = parse(createSchema, req.body, reply);
 		if (!body) return;
 		try {
 			const { sourceId, ...input } = body;
-			const ev = await calendars.create(req.person!, sourceId, input);
+			const ev = await calendars.create(req.person, sourceId, input);
 			return reply.code(201).send({ id: ev.id });
 		} catch (err) {
 			return fail(reply, err);
