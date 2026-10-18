@@ -20,6 +20,7 @@ Projekt: Familien-Kommandozentrale. Die verbindliche Spezifikation ist `SPEC.md`
 
 ## Sicherheit
 - Keine Secrets im Repo. Konfiguration über `.env` (Vorlage: `.env.example`).
+- Repo ist öffentlich: keine echten Domains, IPs, E-Mail-Adressen oder personenbezogenen Daten (Namen, Alter der Kinder) in Code, Doku oder Commits – Platzhalter verwenden, echte Werte nur in `.env`.
 - Tokens/Passwörter verschlüsselt at rest; PINs gehasht; Rate-Limit auf Login.
 - Mealie und Home Assistant nie öffentlich exponieren.
 - Bei Zugriff über die öffentliche Domain `Cf-Access-Jwt-Assertion` validieren.

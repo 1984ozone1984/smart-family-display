@@ -15,7 +15,7 @@ Gerät: Fire HD 8 (2020), Fire OS 7, 2 GB RAM, 1280×800. Kiosk-App: Fully Kiosk
 ```sh
 cd tools/webview-probe
 npm install && npm run build
-npm run serve   # http://<LAN-IP>:8090, Port per PORT=… änderbar
+npm run serve   # gibt die LAN-URL aus (Port 8090, per PORT=… änderbar)
 ```
 
 ## Schritte am Tablet

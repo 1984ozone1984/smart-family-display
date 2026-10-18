@@ -2,6 +2,7 @@
 import { createServer } from 'node:http';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
+import { networkInterfaces } from 'node:os';
 
 const PORT = Number(process.env.PORT ?? 8090);
 const ROOT = join(import.meta.dirname, 'build');
@@ -63,4 +64,10 @@ createServer((req, res) => {
 	if (req.method === 'POST' && req.url === '/report') return void saveReport(req, res);
 	if (req.method === 'GET') return void serveFile(req, res);
 	res.writeHead(405).end();
-}).listen(PORT, '0.0.0.0', () => console.log(`Probe läuft auf http://0.0.0.0:${PORT}`));
+}).listen(PORT, '0.0.0.0', () => {
+	const ips = Object.values(networkInterfaces())
+		.flat()
+		.filter((i) => i && i.family === 'IPv4' && !i.internal)
+		.map((i) => i.address);
+	for (const ip of ips) console.log(`Probe läuft auf http://${ip}:${PORT}`);
+});
