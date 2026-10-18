@@ -32,7 +32,7 @@ Projekt: Familien-Kommandozentrale. Die verbindliche Spezifikation ist `SPEC.md`
 
 ## Deployment
 - Ein Docker-Image `kommandozentrale` (gebaut per GitHub Action → ghcr.io); `docker-compose.yml` mit Container `family-dashboard` und `mealie`. `cloudflared` läuft extern (LXC).
-- Daten unter `/mnt/user/appdata/family-dashboard/`.
+- Daten im Share `/mnt/user/family-dashboard/` (Mealie: `/mnt/user/family-dashboard-mealie/`); Stack-Dateien unter `/mnt/user/appdata/family-dashboard/`.
 - Healthcheck-Endpoint `/api/v1/health`.
 
 ## Nicht tun

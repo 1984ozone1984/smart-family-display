@@ -1,11 +1,12 @@
 # Stack für Unraid. cloudflared läuft extern (eigener LXC) und erreicht die App über das LAN.
-# Konfiguration in .env neben dieser Datei (Vorlage: .env.example).
+# Stack-Dateien (diese Datei + .env) liegen unter /mnt/user/appdata/family-dashboard/,
+# die Daten in eigenen Shares direkt unter /mnt/user/. Vorlage für .env: .env.example.
 services:
   family-dashboard:
     image: ghcr.io/1984ozone1984/kommandozentrale:latest
     container_name: family-dashboard
     restart: unless-stopped
-    # Unraid-Standard nobody:users, damit appdata wie gewohnt beschreibbar ist
+    # Unraid-Standard nobody:users, damit die Shares wie gewohnt beschreibbar sind
     user: '99:100'
     env_file: .env
     environment:
@@ -13,7 +14,7 @@ services:
     ports:
       - '${APP_PORT:-8470}:8470'
     volumes:
-      - /mnt/user/appdata/family-dashboard:/data
+      - /mnt/user/family-dashboard:/data
     networks: [kz]
 
   mealie:
@@ -24,7 +25,7 @@ services:
       ALLOW_SIGNUP: 'false'
       TZ: ${TZ:-Europe/Berlin}
     volumes:
-      - /mnt/user/appdata/mealie:/app/data
+      - /mnt/user/family-dashboard-mealie:/app/data
     networks: [kz]
     # Kein Port nach außen: die App spricht Mealie intern unter http://family-dashboard-mealie:9000 an.
 

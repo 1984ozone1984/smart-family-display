@@ -34,7 +34,8 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 | `mealie` | Unraid Docker | nur intern (Docker-Netz) |
 | `cloudflared` | bestehender LXC auf anderem Server im LAN | ausgehend zu Cloudflare; erreicht die App über `<UNRAID-IP>:8470` |
 
-- Persistenz: `/mnt/user/appdata/family-dashboard/` (SQLite-DB, Uploads, Secrets)
+- Persistenz: Share `/mnt/user/family-dashboard/` (SQLite-DB, Uploads), Mealie: `/mnt/user/family-dashboard-mealie/`
+- Stack-Dateien (Compose + `.env`): `/mnt/user/appdata/family-dashboard/`
 - Cloudflare Access vor der öffentlichen Subdomain: E-Mail-Allowlist (4 Personen), Login per OTP/Google, Session z. B. 30 Tage
 - Tablet nutzt die LAN-URL (kein Access). Die App muss beide Wege unterstützen.
 - Docker Compose (Unraid Compose Manager); alle Secrets per Env-Datei, nie im Repo

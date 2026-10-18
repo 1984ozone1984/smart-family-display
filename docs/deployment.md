@@ -79,15 +79,27 @@ Das Paket erbt die Sichtbarkeit des öffentlichen Repos, Unraid kann es also ohn
 
 ## 3. Unraid
 
-1. Aus den Community Apps das Plugin **Docker Compose Manager** installieren.
-2. Docker → *Compose* → **Add New Stack** `family-dashboard`.
-3. Als Compose-Datei den Inhalt von `docker-compose.yml` einfügen.
-4. Als `.env` die Vorlage `.env.example` einfügen und ausfüllen:
+Ablage:
+
+| Was | Pfad |
+|---|---|
+| Stack (Compose File + `.env`) | `/mnt/user/appdata/family-dashboard/` |
+| App-Daten (DB, Fotos) | Share `/mnt/user/family-dashboard/` |
+| Mealie-Daten | Share `/mnt/user/family-dashboard-mealie/` |
+
+1. **Shares → Add Share**: `family-dashboard` und `family-dashboard-mealie` anlegen. Primary storage am besten **Cache**, weil SQLite dort schneller ist und die Array-Platten schlafen können.
+2. Rechte setzen und Stack-Ordner anlegen (Terminal):
+   ```
+   mkdir -p /mnt/user/appdata/family-dashboard
+   chown 99:100 /mnt/user/family-dashboard /mnt/user/family-dashboard-mealie
+   ```
+3. `docker-compose.yml` und die ausgefüllte `.env` nach `/mnt/user/appdata/family-dashboard/` legen. Vorlage für `.env`: `.env.example`. Wichtig:
    - `LAN_SUBNETS`: Subnetz des Tablets, z. B. `192.168.x.0/24`
    - `TUNNEL_SOURCE_IPS`: `<LXC-IP>`
    - `PUBLIC_HOST`, `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`: aus Schritt 1
-5. Die Ordner `/mnt/user/appdata/family-dashboard` und `/mnt/user/appdata/mealie` anlegen. Besitzer `nobody:users` ist Unraid-Standard.
-6. **Compose Up** ausführen. Unter Docker sollte `family-dashboard` nach kurzer Zeit *healthy* sein.
+4. Plugin **Compose Manager Plus** (Fork des archivierten Docker Compose Manager) installieren.
+5. Docker → *Compose* → **Add New Stack** `family-dashboard`, Quelle **External folder** → `/mnt/user/appdata/family-dashboard`.
+6. **Compose Up**. Unter Docker sollte `family-dashboard` nach kurzer Zeit *healthy* sein.
 
 Update auf eine neue Version: **Compose Pull**, danach **Compose Up**.
 
