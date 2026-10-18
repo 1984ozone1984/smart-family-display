@@ -32,12 +32,13 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 |---|---|---|
 | `kommandozentrale` (App + API) | Unraid Docker | LAN direkt + `https://<sub>.<domain>` über Tunnel |
 | `mealie` | Unraid Docker | nur intern (Docker-Netz) |
-| `cloudflared` | Unraid Docker | ausgehend zu Cloudflare |
+| `cloudflared` | bestehender LXC auf anderem Server im LAN | ausgehend zu Cloudflare; erreicht die App über `<UNRAID-IP>:8470` |
 
 - Persistenz: `/mnt/user/appdata/kommandozentrale/` (SQLite-DB, Uploads, Secrets)
 - Cloudflare Access vor der öffentlichen Subdomain: E-Mail-Allowlist (4 Personen), Login per OTP/Google, Session z. B. 30 Tage
 - Tablet nutzt die LAN-URL (kein Access). Die App muss beide Wege unterstützen.
-- Docker Compose oder Unraid-Templates; alle Secrets per Env-Datei, nie im Repo
+- Docker Compose (Unraid Compose Manager); alle Secrets per Env-Datei, nie im Repo
+- Da cloudflared im LAN liegt, gelten Anfragen von seiner IP nie als LAN-Zugriff (siehe §8)
 
 ## 4. Tech-Stack
 
@@ -119,6 +120,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 | `list` / `list_item` | id, title / id, list_id, text, done, sort |
 | `reminder` | id, ref_type, ref_id, offset_min, channels, last_fired |
 | `push_subscription` | id, person_id, endpoint, keys |
+| `session` | id (SHA-256 des Tokens), person_id, via (lan/public), created_at, expires_at |
 | `setting` | key, value |
 
 ## 7. API (Entwurf)
@@ -127,8 +129,9 @@ REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
 
 | Bereich | Endpunkte |
 |---|---|
-| Auth | `POST /session` (person_id + PIN), `DELETE /session` |
-| Personen | `GET/POST/PATCH /persons` |
+| Auth | `GET /session`, `POST /session` (person_id + PIN), `DELETE /session`, `GET /session/persons` (Auswahl für Login) |
+| Einrichtung | `GET/POST /setup` (erster Elternteil, nur LAN, nur bei leerer DB) |
+| Personen | `GET/POST/PATCH /persons`, `POST /persons/:id/avatar`, `GET /avatars/:file` |
 | Kalender | `GET /events?from&to`, `POST/PATCH/DELETE /events/:id`, `POST /calendars/sync` |
 | Aufgaben | `GET/POST/PATCH /tasks`, `POST /tasks/:id/done`, `POST /tasks/:id/approve` |
 | Routinen | `GET/POST/PATCH /routines` |
@@ -141,7 +144,9 @@ REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
 ## 8. Sicherheit
 
 - Öffentlicher Zugang nur über Cloudflare Access; App prüft zusätzlich `Cf-Access-Jwt-Assertion` bei Zugriff über die öffentliche Domain
-- LAN-Zugang (Tablet) nur aus definiertem Subnetz/IP
+- LAN-Zugang (Tablet) nur aus definiertem Subnetz/IP; Anfragen von der cloudflared-IP oder mit öffentlichem Host-Header brauchen immer ein gültiges Access-JWT
+- Sessions gelten nur auf dem Weg (LAN/öffentlich), auf dem sie entstanden; LAN-Sessions kurz (10 min), öffentliche lang (90 Tage)
+- PIN-Sperre pro Person und pro Client-IP (über den Tunnel: `Cf-Connecting-IP`)
 - PINs gehasht (argon2/bcrypt), Rate-Limit bei PIN-Eingabe
 - Google-Refresh-Token verschlüsselt at rest (Key aus Env)
 - Mealie und HA nie öffentlich; Zugriff nur serverseitig

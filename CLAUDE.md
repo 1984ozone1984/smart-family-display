@@ -31,7 +31,7 @@ Projekt: Familien-Kommandozentrale. Die verbindliche Spezifikation ist `SPEC.md`
 - Jede Phase endet mit Prüfung der Abnahmekriterien aus SPEC.md und kurzer Zusammenfassung.
 
 ## Deployment
-- Ein Docker-Image `kommandozentrale`; `docker-compose.yml` mit `kommandozentrale`, `mealie`, `cloudflared`.
+- Ein Docker-Image `kommandozentrale` (gebaut per GitHub Action → ghcr.io); `docker-compose.yml` mit `kommandozentrale`, `mealie`. `cloudflared` läuft extern (LXC).
 - Daten unter `/mnt/user/appdata/kommandozentrale/`.
 - Healthcheck-Endpoint `/api/v1/health`.
 
