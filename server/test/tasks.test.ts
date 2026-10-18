@@ -140,11 +140,22 @@ async function family() {
 			overdue: boolean;
 			assignees: { personId: number; status: string }[];
 		}[];
-	const done = (taskId: number, personId: number, done = true, opts: object = lan) =>
+	// Am Tablet: Person meldet sich per PIN an (Kinder-PIN 2222)
+	const tablet: Record<number, object> = { [parent.id]: asParent };
+	for (const id of [kid, sibling]) {
+		const login = await app.inject({
+			method: 'POST',
+			url: '/api/v1/session',
+			...lan,
+			payload: { personId: id, pin: '2222' }
+		});
+		tablet[id] = { ...lan, headers: { cookie: cookieOf(login) } };
+	}
+	const done = (taskId: number, personId: number, done = true, opts?: object) =>
 		app.inject({
 			method: 'POST',
 			url: `/api/v1/tasks/${taskId}/done`,
-			...opts,
+			...(opts ?? tablet[personId] ?? lan),
 			payload: { personId, done }
 		});
 	const createTask = async (payload: object) =>
@@ -160,6 +171,7 @@ async function family() {
 		sibling,
 		asParent,
 		kidPhone,
+		tablet,
 		points,
 		tasks,
 		done,
@@ -186,7 +198,6 @@ describe('Aufgaben-API', () => {
 		const [t] = await f.tasks();
 		expect(t).toMatchObject({ title: 'Bett machen', points: 3 });
 
-		// Tablet: ohne Login, nur Antippen
 		expect((await f.done(t!.id, f.kid)).statusCode).toBe(204);
 		expect((await f.done(t!.id, f.kid)).statusCode).toBe(204);
 		expect(await f.points(f.kid)).toBe(3);
@@ -263,6 +274,16 @@ describe('Aufgaben-API', () => {
 		expect(await f.points(f.kid)).toBe(2);
 		expect(await f.points(f.sibling)).toBe(0);
 		expect((await f.done(id, f.parent.id)).statusCode).toBe(404);
+	});
+
+	it('Am Tablet: ohne Anmeldung kein Abhaken, Kind nur eigene Aufgaben, Eltern für alle', async () => {
+		const f = await family();
+		const id = await f.createTask({ title: 'Lesen', points: 1, assignees: [f.kid, f.sibling] });
+		expect((await f.done(id, f.kid, true, f.lan)).statusCode).toBe(401);
+		expect((await f.done(id, f.sibling, true, f.tablet[f.kid])).statusCode).toBe(403);
+		expect((await f.done(id, f.kid, true, f.tablet[f.kid])).statusCode).toBe(204);
+		expect((await f.done(id, f.sibling, true, f.asParent)).statusCode).toBe(204);
+		expect(await f.points(f.sibling)).toBe(1);
 	});
 
 	it('Über das Handy: Kind nur für sich selbst, nicht fürs Geschwister', async () => {

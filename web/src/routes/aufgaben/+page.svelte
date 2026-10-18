@@ -10,7 +10,6 @@
 	import { SLOT_LABEL, WEEKDAYS } from '#lib/icons.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 
-	let notice = $state('');
 	let editTask = $state<Task | 'new' | null>(null);
 	let editRoutine = $state<Routine | 'new' | null>(null);
 
@@ -31,10 +30,6 @@
 				? 'wöchentlich'
 				: r.schedule.days.map((d) => WEEKDAYS[d - 1]).join(', ');
 
-	async function toggle(t: Task, personId: number) {
-		notice = (await tasks.toggle(t, personId)) ?? '';
-	}
-
 	async function decide(taskId: number, personId: number, approve: boolean) {
 		await api(`/tasks/${taskId}/approve`, { method: 'POST', json: { personId, approve } });
 		await tasks.loadTasks();
@@ -42,7 +37,6 @@
 </script>
 
 <h1>Aufgaben</h1>
-{#if notice}<p class="notice" role="status">{notice}</p>{/if}
 
 <div class="people">
 	{#each app.persons as p (p.id)}
@@ -64,7 +58,11 @@
 					<h3>{slot ? SLOT_LABEL[slot] : 'Irgendwann heute'}</h3>
 					<div class="list">
 						{#each list as t (t.id)}
-							<TaskTile task={t} status={tasks.status(t, p.id)} onclick={() => toggle(t, p.id)} />
+							<TaskTile
+								task={t}
+								status={tasks.status(t, p.id)}
+								onclick={() => tasks.tap(t, p.id)}
+							/>
 						{/each}
 					</div>
 				{/if}
@@ -153,11 +151,6 @@
 <style>
 	h1 {
 		margin: 0 0 12px;
-	}
-	.notice {
-		background: #fef3c7;
-		border-radius: 12px;
-		padding: 8px 12px;
 	}
 	.people {
 		display: grid;

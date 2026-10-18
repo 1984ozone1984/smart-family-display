@@ -90,6 +90,15 @@
 	{#if loginOpen}
 		<LoginDialog onclose={() => (loginOpen = false)} ondone={() => (loginOpen = false)} />
 	{/if}
+	{#if tasks.pendingLogin}
+		<LoginDialog
+			personId={tasks.pendingLogin.personId}
+			title="Wer hakt ab?"
+			onclose={() => (tasks.pendingLogin = null)}
+			ondone={() => tasks.resumeAfterLogin()}
+		/>
+	{/if}
+	{#if tasks.notice}<p class="toast" role="status">{tasks.notice}</p>{/if}
 {/if}
 
 <style>
@@ -148,6 +157,20 @@
 	}
 	main {
 		padding: 16px;
+	}
+	.toast {
+		position: fixed;
+		left: 50%;
+		bottom: 24px;
+		transform: translateX(-50%);
+		z-index: 20;
+		max-width: calc(100% - 32px);
+		margin: 0;
+		padding: 12px 20px;
+		border-radius: 14px;
+		background: var(--text);
+		color: var(--surface);
+		font-weight: 600;
 	}
 	.center {
 		min-height: 100vh;

@@ -7,11 +7,14 @@
 
 	let {
 		parentsOnly = false,
+		personId,
 		title = 'Wer bist du?',
 		onclose,
 		ondone
 	}: {
 		parentsOnly?: boolean;
+		/** Person vorauswählen: direkt zum PIN-Pad */
+		personId?: number;
 		title?: string;
 		onclose?: () => void;
 		ondone?: () => void;
@@ -27,7 +30,7 @@
 		const res = await api<{ persons: Person[]; suggestedId: number | null }>('/session/persons');
 		all = res.persons;
 		// Handy: Access-E-Mail passt zu einer Person, dann gleich zur PIN
-		const suggested = choices.find((p) => p.id === res.suggestedId);
+		const suggested = choices.find((p) => p.id === (personId ?? res.suggestedId));
 		if (suggested) selected = suggested;
 	});
 

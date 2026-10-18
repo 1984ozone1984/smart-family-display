@@ -28,11 +28,6 @@
 	const family = $derived(events.filter((e) => e.personId === null));
 	const forPerson = (id: number) => events.filter((e) => e.personId === id);
 	const isToday = $derived(sameDay(day, new Date()));
-	let notice = $state('');
-	async function toggle(t: Parameters<typeof tasks.toggle>[0], personId: number) {
-		notice = (await tasks.toggle(t, personId)) ?? '';
-		if (notice) setTimeout(() => (notice = ''), 4000);
-	}
 </script>
 
 <div class="toolbar">
@@ -45,8 +40,6 @@
 	/>
 	<button class="btn primary" onclick={() => (dialog = { personId: null })}>+ Termin</button>
 </div>
-
-{#if notice}<p class="notice" role="status">{notice}</p>{/if}
 
 {#if family.length}
 	<section class="family">
@@ -92,7 +85,7 @@
 							task={t}
 							status={tasks.status(t, p.id)}
 							compact
-							onclick={() => toggle(t, p.id)}
+							onclick={() => tasks.tap(t, p.id)}
 						/>
 					{/each}
 				</div>
@@ -161,11 +154,6 @@
 		margin-left: auto;
 		font-weight: 700;
 		white-space: nowrap;
-	}
-	.notice {
-		background: #fef3c7;
-		border-radius: 12px;
-		padding: 8px 12px;
 	}
 	.tasks {
 		display: flex;

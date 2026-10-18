@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
-import { requireParent, requireReader, type Ctx } from '../app.ts';
-import { mayActFor } from '../auth/actor.ts';
+import { requireParent, requirePerson, requireReader, type Ctx } from '../app.ts';
 import { AppError } from '../errors.ts';
 import { getPerson } from '../persons.ts';
 import { generateRoutineTasks, scheduleSchema } from '../tasks/routines.ts';
@@ -173,18 +172,21 @@ export async function taskRoutes(app: FastifyInstance, { db, bus, config }: Ctx)
 		return reply.code(204).send();
 	});
 
-	app.post('/tasks/:id/done', { preHandler: requireReader }, async (req, reply) => {
+	// Abhaken nur durch die Person selbst (mit PIN angemeldet) oder ein Elternteil – auch am Tablet
+	app.post('/tasks/:id/done', { preHandler: requirePerson }, async (req, reply) => {
 		const p = parse(idParam, req.params, reply);
 		const b = p && parse(doneBody, req.body, reply);
 		if (!p || !b) return;
-		if (!mayActFor(req, b.personId)) return reply.code(403).send({ error: 'not allowed' });
+		const me = req.person!;
+		if (me.id !== b.personId && me.role !== 'parent')
+			return reply.code(403).send({ error: 'not allowed' });
 		return handle(reply, () => {
 			setDone(db, {
 				taskId: p.id,
 				personId: b.personId,
 				done: b.done,
-				byParent: req.person?.role === 'parent',
-				by: req.person?.id ?? b.personId,
+				byParent: me.role === 'parent',
+				by: me.id,
 				today: today()
 			});
 			changed(true);

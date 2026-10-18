@@ -80,7 +80,8 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Abhaken durch zugewiesene Person; optional „Eltern bestätigen“ pro Aufgabe
 - Tagesansicht pro Kind mit Fortschritt
 - Routinen-Aufgaben verfallen nach ihrem Zeitraum (täglich: am Tagesende, wöchentlich: Sonntag) ohne Punkte; einmalige Aufgaben bleiben offen und werden als überfällig markiert
-- Am Tablet genügt Antippen zum Abhaken/Zurücknehmen und zum Anfragen von Belohnungen; Eltern-PIN nur für geschützte Aktionen (Anlegen, Bestätigen, Freigeben, Bonus/Abzug). Über die öffentliche Adresse handelt nur die angemeldete Person für sich (oder ein Elternteil)
+- Abhaken/Zurücknehmen nur durch die zuständige Person selbst oder ein Elternteil. Am Tablet: Antippen öffnet das PIN-Pad der Person (vorausgewählt); danach bleibt sie 2 min ohne Bedienung angemeldet und kann weitere eigene Aufgaben ohne PIN abhaken
+- Belohnungen anfragen geht am Tablet ohne PIN (Eltern geben ohnehin frei); Eltern-PIN für geschützte Aktionen (Anlegen, Bestätigen, Freigeben, Bonus/Abzug)
 - Eltern können ebenfalls Aufgaben erhalten und Punkte sammeln
 
 ### 5.3 Punkte & Belohnungen

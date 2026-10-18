@@ -1,7 +1,7 @@
 import type { FastifyRequest } from 'fastify';
 
 /**
- * Ungeschützte Aktionen (Aufgabe abhaken, Belohnung anfragen): Am Tablet (LAN) genügt die
+ * Ungeschützte Aktionen (Belohnung anfragen/zurückziehen): Am Tablet (LAN) genügt die
  * angetippte Person – das Gerät wird gemeinsam genutzt. Über die öffentliche Adresse muss die
  * angemeldete Person es selbst sein oder ein Elternteil.
  */
