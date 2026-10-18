@@ -1,0 +1,11 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		// Node 24 führt .ts direkt aus (Type Stripping): nur entfernbare Syntax, Imports mit .ts-Endung.
+		"erasableSyntaxOnly": true,
+		"allowImportingTsExtensions": true,
+		"noEmit": true,
+		"types": ["node"]
+	},
+	"include": ["src", "test", "vitest.config.ts"]
+}
