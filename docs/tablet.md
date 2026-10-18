@@ -6,7 +6,7 @@ Gerät: Fire HD 8 (2020), Fire OS 7, 2 GB RAM, 1280×800. Kiosk-App: Fully Kiosk
 
 - [x] Testseite `tools/webview-probe/` gebaut (Build-Target chrome64)
 - [x] Fully Kiosk installiert
-- [ ] JS-Interface aktiv (`fully`-Objekt im Testlauf nicht gefunden)
+- [x] JS-Interface aktiv (Advanced Web Settings → Enable JavaScript Interface)
 - [x] Probe in Fully gelaufen (inkl. FPS-Test)
 - [x] Vergleichslauf in Silk
 - [x] Ergebnis dokumentiert, Build-Target festgelegt
@@ -31,23 +31,26 @@ npm run serve   # gibt die LAN-URL aus (Port 8090, per PORT=… änderbar)
 
 ## Ergebnis
 
-Testlauf 2026-10-18, 7 Berichte (4× Fully/WebView, 3× Silk).
+Testlauf 2026-10-18, 12 Berichte (Fully/WebView und Silk; JS-Interface ab dem zweiten Durchgang aktiv).
 
 | | Wert |
 |---|---|
 | Fire OS / Modell | Android 9, `KFONWI`, Build PS7331.4463N |
 | **System-WebView** | **Chrome 138.0.7204.244** |
+| Fully Kiosk | 1.61.4 (kostenlos); `fully.getWebviewVersion()` = 138.0.7204.244 |
 | Silk | 138.13.4 (Chrome 138) |
+| Display (physisch) | 800×1280 (`fully.getDisplayWidth/Height`) |
 | CSS-Viewport | 601×961 im Hochformat, DPR 1,33 → quer ca. **962×601 CSS-px** (nicht 1280×800) |
 | CPU / Zeitzone | 4 Kerne, `Europe/Vienna` |
-| FPS (24 Elemente, 8 s) | Ø 60, min 58–60, schlechtester Frame 17 ms; einmal 50 ms beim ersten Lauf |
+| FPS Fully (24 Elemente, 8 s) | Ø 60, min 58–60, schlechtester Frame 17–50 ms, 0–1 Ruckler |
+| FPS Silk | Ø 59, min 57, schlechtester Frame 67 ms, 2 Ruckler |
 
 **Vorhanden:** die gesamte moderne JS-Syntax und alle geprüften APIs (u. a. SSE, `structuredClone`, `WeakRef`, `ResizeObserver`, `Intl`), dazu `AudioContext` und die Fullscreen-API. Im CSS ebenfalls alles geprüfte: Grid, Flex-`gap`, `:has()`, Container Queries, Nesting, `color-mix()`, `dvh`.
 
 **Fehlt in der WebView:**
 - `isSecureContext` = false über `http://<LAN-IP>` → **kein Service Worker, kein Push** am Tablet
 - `speechSynthesis` → TTS am Tablet nur über `fully.textToSpeech()`
-- Wake Lock, `getBattery`, `Notification` (gibt es in Fully über eigene Funktionen)
+- Wake Lock, `getBattery`, `Notification` → Ersatz über Fully (`getBatteryLevel()`, `isPlugged()`, Bildschirmsteuerung)
 
 ### Folgerungen
 
