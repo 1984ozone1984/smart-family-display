@@ -63,6 +63,9 @@ export async function sessionRoutes(app: FastifyInstance, ctx: Ctx) {
 			return reply.code(401).send({ error: 'wrong pin' });
 		}
 		lockout.succeed(keys);
+		// Personenwechsel: die bisherige Sitzung dieses Geräts gleich beenden
+		const previous = req.cookies[SESSION_COOKIE];
+		if (previous) deleteSession(db, previous);
 		const expiresAt = startSession(ctx, reply, person.id, req.via);
 		return {
 			person: toDto(person, person.role === 'parent'),

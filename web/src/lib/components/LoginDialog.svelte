@@ -10,7 +10,8 @@
 		personId,
 		title = 'Wer bist du?',
 		onclose,
-		ondone
+		ondone,
+		onlogout
 	}: {
 		parentsOnly?: boolean;
 		/** Person vorauswählen: direkt zum PIN-Pad */
@@ -18,6 +19,8 @@
 		title?: string;
 		onclose?: () => void;
 		ondone?: () => void;
+		/** Personenwechsel: zusätzlich „Abmelden“ anbieten */
+		onlogout?: () => void;
 	} = $props();
 
 	let all = $state<Person[]>([]);
@@ -31,7 +34,8 @@
 		all = res.persons;
 		// Handy: Access-E-Mail passt zu einer Person, dann gleich zur PIN
 		const suggested = choices.find((p) => p.id === (personId ?? res.suggestedId));
-		if (suggested) selected = suggested;
+		// Beim Personenwechsel die Auswahl zeigen statt direkt die eigene PIN
+		if (suggested && !onlogout) selected = suggested;
 	});
 
 	async function submit(pin: string) {
@@ -69,12 +73,22 @@
 			<h2>{title}</h2>
 			<div class="people">
 				{#each choices as p (p.id)}
-					<button type="button" class="person" onclick={() => (selected = p)}>
+					<button
+						type="button"
+						class="person"
+						class:current={app.me?.id === p.id}
+						onclick={() => (selected = p)}
+					>
 						<Avatar person={p} size={88} />
 						<span>{p.name}</span>
 					</button>
 				{/each}
 			</div>
+			{#if onlogout}
+				<div class="logout">
+					<button type="button" class="btn" onclick={onlogout}>Abmelden</button>
+				</div>
+			{/if}
 		{:else}
 			<button type="button" class="back" onclick={() => ((selected = null), (error = ''))}>
 				<Avatar person={selected} size={40} />
@@ -117,6 +131,14 @@
 		height: 48px;
 		font-size: 22px;
 		background: none;
+	}
+	.person.current {
+		outline: 3px solid var(--accent);
+	}
+	.logout {
+		display: flex;
+		justify-content: center;
+		margin-top: 20px;
 	}
 	.people {
 		display: flex;

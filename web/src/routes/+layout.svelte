@@ -81,9 +81,11 @@
 		<div class="session">
 			<span class="live {app.live}" title="Synchronisation: {app.live}"></span>
 			{#if app.me}
-				<Avatar person={app.me} size={40} />
-				<span class="name">{app.me.name}</span>
-				<button class="btn" onclick={() => app.logout()}>Abmelden</button>
+				<!-- Antippen: schnell zu einer anderen Person wechseln (oder abmelden) -->
+				<button class="me" onclick={() => (loginOpen = true)} aria-label="Person wechseln">
+					<Avatar person={app.me} size={40} />
+					<span class="name">{app.me.name}</span>
+				</button>
 			{:else if !app.setupNeeded}
 				<button class="btn" onclick={() => (loginOpen = true)}>Anmelden</button>
 			{/if}
@@ -91,7 +93,17 @@
 	</header>
 	<main>{@render children()}</main>
 	{#if loginOpen}
-		<LoginDialog onclose={() => (loginOpen = false)} ondone={() => (loginOpen = false)} />
+		<LoginDialog
+			title={app.me ? 'Person wechseln' : 'Wer bist du?'}
+			onclose={() => (loginOpen = false)}
+			ondone={() => (loginOpen = false)}
+			onlogout={app.me
+				? () => {
+						loginOpen = false;
+						void app.logout();
+					}
+				: undefined}
+		/>
 	{/if}
 	{#if tasks.pendingLogin}
 		<LoginDialog
@@ -141,6 +153,16 @@
 	}
 	nav a.active {
 		background: var(--surface-2);
+	}
+	.me {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		min-height: 48px;
+		padding: 4px 14px 4px 4px;
+		border-radius: 999px;
+		background: var(--surface-2);
+		font-weight: 600;
 	}
 	.session {
 		display: flex;

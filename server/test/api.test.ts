@@ -269,7 +269,33 @@ describe('API', () => {
 		expect(me.json().person).toBeNull();
 	});
 
-	it('Avatar: nur echte Bilder, danach abrufbar', async () => {
+	it('Personenwechsel beendet die bisherige Session des Geräts', async () => {
+		const { app } = await makeApp();
+		const parent = await setupParent(app);
+		const childId = await addChild(app, parent.cookie);
+		const switched = await app.inject({
+			method: 'POST',
+			url: '/api/v1/session',
+			...lan,
+			headers: { cookie: parent.cookie },
+			payload: { personId: childId, pin: '2222' }
+		});
+		expect(switched.statusCode).toBe(200);
+		const old = await app.inject({
+			url: '/api/v1/session',
+			...lan,
+			headers: { cookie: parent.cookie }
+		});
+		expect(old.json().person).toBeNull();
+		const now = await app.inject({
+			url: '/api/v1/session',
+			...lan,
+			headers: { cookie: cookieOf(switched) }
+		});
+		expect(now.json().person.id).toBe(childId);
+	});
+
+	it('Avatar:nur echte Bilder, danach abrufbar', async () => {
 		const { app } = await makeApp();
 		const parent = await setupParent(app);
 		const upload = (content: Buffer) => {
