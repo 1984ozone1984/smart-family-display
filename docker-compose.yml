@@ -23,6 +23,9 @@ services:
     restart: unless-stopped
     environment:
       ALLOW_SIGNUP: 'false'
+      # Dateien als nobody:users anlegen (Mealie-Standard wäre 911)
+      PUID: '99'
+      PGID: '100'
       TZ: ${TZ:-Europe/Berlin}
     volumes:
       - /mnt/user/family-dashboard-mealie:/app/data
