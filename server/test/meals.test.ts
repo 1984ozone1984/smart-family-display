@@ -5,10 +5,10 @@ import { LAN_IP, makeApp, PUBLIC_HOST, TUNNEL_IP } from './helpers.ts';
 
 const lan = { remoteAddress: LAN_IP };
 
-async function world() {
+async function world(env?: Record<string, string>) {
 	const fake = fakeMealie();
 	const api = createMealieApi({ url: 'http://mealie.test:9000', token: 'tok' }, fake.fetch);
-	const { app, bus, sign } = await makeApp({ mealie: api });
+	const { app, bus, sign } = await makeApp({ mealie: api, env });
 	await app.inject({
 		method: 'POST',
 		url: '/api/v1/setup',
@@ -219,5 +219,62 @@ describe('Mealie: Essensplan und Rezepte', () => {
 		]);
 		expect((await w.req('GET', `/recipes/${w.suppe}/image`)).statusCode).toBe(404);
 		expect((await w.req('GET', '/recipes/gibts-nicht')).statusCode).toBe(404);
+	});
+
+	it('planen: Rezept, Text, Zufall; ersetzen und entfernen; jedes Mal ein Event', async () => {
+		const w = await withPlan();
+		const plan = (body: object) => w.req('POST', '/meals', body);
+
+		const r1 = await plan({ date: '2026-10-20', type: 'dinner', recipeId: w.suppe });
+		expect(r1.statusCode).toBe(201);
+		expect(r1.json().entry).toMatchObject({ date: '2026-10-20', type: 'dinner', title: 'Suppe' });
+
+		const r2 = await plan({ date: '2026-10-20', type: 'lunch', title: 'Reste' });
+		expect(r2.json().entry).toMatchObject({ title: 'Reste', recipe: null });
+
+		// Ersetzen: neuer Eintrag per Zufall, alter wird entfernt
+		const old = r1.json().entry.id as number;
+		const r3 = await plan({ date: '2026-10-20', type: 'dinner', random: true, replace: old });
+		expect(r3.json().entry.title).toBe('Nudeln');
+		expect(w.fake.plans.some((p) => p.id === old)).toBe(false);
+
+		expect((await w.req('DELETE', `/meals/${r2.json().entry.id}`)).statusCode).toBe(204);
+		const tue = (await w.req('GET', '/meals?week=2026-10-20'))
+			.json()
+			.entries.filter((e: { date: string }) => e.date === '2026-10-20');
+		expect(tue.map((e: { title: string }) => e.title)).toEqual(['Nudeln']);
+		expect(w.events.filter((e) => e === 'meals.changed')).toHaveLength(4);
+	});
+
+	it('Zufall ohne passende Rezepte: 409; ungültige Eingaben: 400', async () => {
+		const w = await world();
+		const r = await w.req('POST', '/meals', { date: '2026-10-20', type: 'dinner', random: true });
+		expect([r.statusCode, r.json().error]).toEqual([409, 'no recipes']);
+		expect(
+			(await w.req('POST', '/meals', { date: '2026-10-20', type: 'mittag', title: 'x' })).statusCode
+		).toBe(400);
+		expect((await w.req('POST', '/meals', { date: '2026-10-20', type: 'lunch' })).statusCode).toBe(
+			400
+		);
+	});
+
+	it('Rezeptsuche', async () => {
+		const w = await withPlan();
+		const names = async (q: string) =>
+			(await w.req('GET', `/recipes?search=${encodeURIComponent(q)}`))
+				.json()
+				.recipes.map((r: { name: string }) => r.name);
+		expect(await names('nud')).toEqual(['Nudeln']);
+		expect(await names('')).toEqual(['Nudeln', 'Suppe']);
+	});
+
+	it('Links in die Mealie-Oberfläche nur mit MEALIE_LAN_URL', async () => {
+		const without = await world();
+		expect((await without.req('GET', '/meals')).json().links).toBeNull();
+		const w = await world({ MEALIE_LAN_URL: 'http://mealie.lan:9925/' });
+		expect((await w.req('GET', '/meals')).json().links).toEqual({
+			planner: 'http://mealie.lan:9925/household/mealplan/planner/view',
+			recipe: 'http://mealie.lan:9925/g/home/r/'
+		});
 	});
 });

@@ -85,6 +85,9 @@ export type MealEntry = {
 	text: string;
 	recipe: { id: string; slug: string; name: string; image: boolean } | null;
 };
+export type RecipeRef = { id: string; slug: string; name: string; image: boolean };
+/** Links in die Mealie-Oberfläche (nur im LAN) */
+export type MealieLinks = { planner: string; recipe: string | null };
 export type Recipe = {
 	id: string;
 	slug: string;

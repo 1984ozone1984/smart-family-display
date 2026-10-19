@@ -1,9 +1,11 @@
 <script lang="ts">
 	import type { MealEntry } from '#lib/api.ts';
 	import DayNav from '#lib/components/DayNav.svelte';
+	import MealPlanDialog from '#lib/components/MealPlanDialog.svelte';
 	import Modal from '#lib/components/Modal.svelte';
 	import RecipeDialog from '#lib/components/RecipeDialog.svelte';
 	import { addDays, fmtDayShort, fromIsoDate, isoDate } from '#lib/dates.ts';
+	import { longpress } from '#lib/longpress.ts';
 	import { meals } from '#lib/meals.svelte.ts';
 	import { onMount } from 'svelte';
 
@@ -16,6 +18,8 @@
 
 	let open = $state<MealEntry | null>(null);
 	let confirm = $state(false);
+	/** Planen: Tag und Mahlzeit vom Ort des Drückens, ggf. vorhandener Eintrag zum Ersetzen */
+	let planning = $state<{ date: string; type: string; entry?: MealEntry } | null>(null);
 
 	onMount(() => void meals.loadWeek());
 
@@ -47,9 +51,16 @@
 		/>
 	{/if}
 	{#if meals.mealsStatus === 'ok'}
-		<button class="btn" disabled={!recipes.size} onclick={() => (confirm = true)}>
-			🛒 Zutaten der Woche auf die Einkaufsliste
-		</button>
+		<div class="actions">
+			{#if meals.links}
+				<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- externe Mealie-Adresse -->
+				<a class="btn" href={meals.links.planner} target="_blank" rel="noopener">In Mealie öffnen</a
+				>
+			{/if}
+			<button class="btn" disabled={!recipes.size} onclick={() => (confirm = true)}>
+				🛒 Zutaten der Woche auf die Einkaufsliste
+			</button>
+		</div>
 	{/if}
 </div>
 
@@ -63,20 +74,39 @@
 			<section class="day" class:today={d === meals.today}>
 				<header>{fmtDayShort(fromIsoDate(d))}</header>
 				{#each slots as s (s.type)}
-					<div class="slot">
-						<small class="muted">{s.label}</small>
-						{#each at(d, s.type) as e (e.id)}
+					<!-- Langes Drücken plant für diesen Tag und diese Mahlzeit; leere Mahlzeit: Antippen reicht -->
+					{@const list = at(d, s.type)}
+					<div class="slot" {@attach longpress(() => (planning = { date: d, type: s.type }))}>
+						{#if list.length}
+							<small class="muted">{s.label}</small>
+						{:else}
+							<button
+								class="empty-slot"
+								onclick={() => (planning = { date: d, type: s.type })}
+								aria-label="{s.label} am {fmtDayShort(fromIsoDate(d))} planen"
+								><small class="muted">{s.label}</small><span aria-hidden="true">+</span></button
+							>
+						{/if}
+						{#each list as e (e.id)}
 							{#if e.recipe}
-								<button class="meal" onclick={() => (open = e)}>
+								<button
+									class="meal"
+									onclick={() => (open = e)}
+									{@attach longpress(() => (planning = { date: d, type: e.type, entry: e }))}
+								>
 									{#if e.recipe.image}
 										<img src="/api/v1/recipes/{e.recipe.id}/image" alt="" loading="lazy" />
 									{/if}
 									<span>{e.title}</span>
 								</button>
 							{:else}
-								<div class="meal note">
+								<button
+									class="meal note"
+									onclick={() => (planning = { date: d, type: e.type, entry: e })}
+									{@attach longpress(() => (planning = { date: d, type: e.type, entry: e }))}
+								>
 									<span>{e.title || e.text}</span>
-								</div>
+								</button>
 							{/if}
 						{/each}
 					</div>
@@ -92,7 +122,21 @@
 {/if}
 
 {#if open?.recipe}
-	<RecipeDialog slug={open.recipe.slug} title={open.title} onclose={() => (open = null)} />
+	<RecipeDialog
+		slug={open.recipe.slug}
+		title={open.title}
+		mealieUrl={meals.links?.recipe ? meals.links.recipe + open.recipe.slug : null}
+		onclose={() => (open = null)}
+	/>
+{/if}
+
+{#if planning}
+	<MealPlanDialog
+		date={planning.date}
+		type={planning.type}
+		entry={planning.entry ?? null}
+		onclose={() => (planning = null)}
+	/>
 {/if}
 
 {#if confirm}
@@ -143,11 +187,49 @@
 	header {
 		font-weight: 700;
 	}
+	.actions {
+		display: flex;
+		gap: 8px;
+		flex-wrap: wrap;
+	}
+	a.btn {
+		display: inline-flex;
+		align-items: center;
+		background: var(--surface-2);
+		color: inherit;
+		text-decoration: none;
+	}
 	.slot {
 		display: flex;
 		flex-direction: column;
 		gap: 4px;
 		min-height: 120px;
+		/* Langes Drücken soll nicht Text markieren */
+		user-select: none;
+		-webkit-user-select: none;
+		-webkit-touch-callout: none;
+	}
+	.empty-slot {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 4px;
+		padding: 0;
+		background: none;
+		text-align: left;
+	}
+	.empty-slot span {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 100%;
+		flex: 1;
+		min-height: 40px;
+		border: 2px dashed var(--surface-2);
+		border-radius: 12px;
+		color: var(--text-muted);
+		font-size: 22px;
 	}
 	.meal {
 		display: flex;
@@ -189,8 +271,12 @@
 		.slot {
 			min-height: 0;
 		}
-		.slot:not(:has(.meal)) {
-			display: none;
+		.empty-slot {
+			flex-direction: row;
+			align-items: center;
+		}
+		.empty-slot span {
+			min-height: 36px;
 		}
 		.meal {
 			flex-direction: row;

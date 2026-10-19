@@ -45,10 +45,18 @@ export type MItem = {
 	[key: string]: unknown;
 };
 export type MList = { id: string; name: string | null };
+export type MPlanInput = { date: string; entryType: string; recipeId?: string; title?: string };
 
 export interface MealieApi {
 	mealplans(start: string, end: string): Promise<MPlanEntry[]>;
 	recipe(slug: string): Promise<MRecipe>;
+	searchRecipes(query: string, limit: number): Promise<MRecipeRef[]>;
+	createMealplan(entry: MPlanInput): Promise<MPlanEntry>;
+	/** Zufälliges Rezept nach den Essensplan-Regeln des Haushalts; 404, wenn keins passt */
+	randomMealplan(date: string, entryType: string): Promise<MPlanEntry>;
+	deleteMealplan(id: number): Promise<void>;
+	/** Slug der Gruppe des Token-Benutzers (für Links in die Mealie-Oberfläche) */
+	groupSlug(): Promise<string>;
 	/** Rezeptbild (klein); liefert die Antwort zum Durchreichen */
 	image(recipeId: string): Promise<Response>;
 	shoppingLists(): Promise<MList[]>;
@@ -103,6 +111,30 @@ export function createMealieApi(
 			return r.items;
 		},
 		recipe: (slug) => json<MRecipe>(`/api/recipes/${encodeURIComponent(slug)}`),
+		async searchRecipes(query, limit) {
+			const q = new URLSearchParams({
+				page: '1',
+				perPage: String(limit),
+				per_page: String(limit),
+				orderBy: 'name',
+				orderDirection: 'asc'
+			});
+			if (query) q.set('search', query);
+			return (await json<{ items: MRecipeRef[] }>(`/api/recipes?${q}`)).items;
+		},
+		createMealplan: (entry) =>
+			json<MPlanEntry>(
+				'/api/households/mealplans',
+				send('POST', { title: '', text: '', recipeId: null, ...entry })
+			),
+		randomMealplan: (date, entryType) =>
+			json<MPlanEntry>('/api/households/mealplans/random', send('POST', { date, entryType })),
+		async deleteMealplan(id) {
+			await call(`/api/households/mealplans/${id}`, { method: 'DELETE' });
+		},
+		async groupSlug() {
+			return (await json<{ groupSlug: string }>('/api/users/self')).groupSlug;
+		},
 		image: (id) => call(`/api/media/recipes/${encodeURIComponent(id)}/images/min-original.webp`),
 		async shoppingLists() {
 			const r = await json<{ items: MList[] }>(

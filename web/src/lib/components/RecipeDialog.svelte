@@ -3,7 +3,18 @@
 	import { meals } from '../meals.svelte.ts';
 	import Modal from './Modal.svelte';
 
-	let { slug, title, onclose }: { slug: string; title: string; onclose: () => void } = $props();
+	let {
+		slug,
+		title,
+		mealieUrl = null,
+		onclose
+	}: {
+		slug: string;
+		title: string;
+		/** Link zum Rezept in der Mealie-Oberfläche (nur im LAN) */
+		mealieUrl?: string | null;
+		onclose: () => void;
+	} = $props();
 
 	let recipe = $state<Recipe | null>(null);
 	let failed = $state(false);
@@ -58,6 +69,10 @@
 				{/each}
 			</ol>
 		{/if}
+		{#if mealieUrl}
+			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- externe Mealie-Adresse -->
+			<a class="btn mealie" href={mealieUrl} target="_blank" rel="noopener">In Mealie bearbeiten</a>
+		{/if}
 	{/if}
 </Modal>
 
@@ -109,6 +124,15 @@
 		text-align: center;
 		font-weight: 700;
 		line-height: 28px;
+	}
+	.mealie {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 20px;
+		background: var(--surface-2);
+		color: inherit;
+		text-decoration: none;
 	}
 	li.section {
 		padding-top: 12px;

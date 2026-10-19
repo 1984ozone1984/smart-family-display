@@ -58,7 +58,12 @@ export function googleDeps(fake: FakeGoogle): GoogleDeps {
 }
 
 export async function makeApp(
-	opts: { lanSubnets?: string; google?: FakeGoogle; mealie?: MealieApi } = {}
+	opts: {
+		lanSubnets?: string;
+		google?: FakeGoogle;
+		mealie?: MealieApi;
+		env?: Record<string, string>;
+	} = {}
 ) {
 	const config = loadConfig({
 		DATA_DIR: mkdtempSync(join(tmpdir(), 'kz-test-')),
@@ -67,7 +72,8 @@ export async function makeApp(
 		CF_ACCESS_AUD: AUD,
 		TUNNEL_SOURCE_IPS: TUNNEL_IP,
 		LAN_SUBNETS: opts.lanSubnets ?? '192.168.1.0/24',
-		TZ: 'Europe/Berlin'
+		TZ: 'Europe/Berlin',
+		...opts.env
 	});
 	const db = openDb(':memory:');
 	migrate(db);

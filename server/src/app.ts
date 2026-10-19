@@ -116,7 +116,8 @@ export async function buildApp(deps: AppDeps) {
 					api: deps.mealie,
 					bus: deps.bus,
 					tz,
-					listName: deps.config.MEALIE_SHOPPING_LIST
+					listName: deps.config.MEALIE_SHOPPING_LIST,
+					lanUrl: deps.config.MEALIE_LAN_URL
 				})
 			: null
 	};

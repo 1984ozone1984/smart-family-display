@@ -5,7 +5,8 @@ import {
 	type MealieApi,
 	type MItem,
 	type MPlanEntry,
-	type MRecipe
+	type MRecipe,
+	type MRecipeRef
 } from './client.ts';
 
 /**
@@ -50,6 +51,13 @@ export function mealDto(e: MPlanEntry): MealEntry {
 	};
 }
 
+export const recipeRefDto = (r: MRecipeRef) => ({
+	id: r.id,
+	slug: r.slug,
+	name: r.name ?? '',
+	image: !!r.image
+});
+
 export function recipeDto(r: MRecipe) {
 	return {
 		id: r.id,
@@ -77,11 +85,14 @@ export function createMealieService(o: {
 	tz: string;
 	/** Name der Einkaufsliste in Mealie; ohne Angabe die älteste vorhandene */
 	listName?: string;
+	/** Adresse der Mealie-Oberfläche im LAN, für Links (nur am Tablet/im LAN angezeigt) */
+	lanUrl?: string;
 }) {
 	const { api, bus } = o;
 	let listId: string | null = null;
 	let lastShopping = '';
 	let lastMeals = '';
+	let groupSlug: string | null = null;
 
 	async function shoppingListId(): Promise<string> {
 		if (listId) return listId;
@@ -114,6 +125,11 @@ export function createMealieService(o: {
 		return { start, entries };
 	}
 
+	const mealsChanged = () => {
+		lastMeals = '';
+		bus.publish({ type: 'meals.changed' });
+	};
+
 	const shoppingChanged = () => {
 		lastShopping = '';
 		bus.publish({ type: 'shopping.changed' });
@@ -123,6 +139,47 @@ export function createMealieService(o: {
 		shopping,
 		week,
 		recipe: async (slug: string) => recipeDto(await api.recipe(slug)),
+		search: async (query: string) => (await api.searchRecipes(query, 24)).map(recipeRefDto),
+
+		/** Links in die Mealie-Oberfläche; null, wenn keine LAN-Adresse eingestellt ist */
+		async links() {
+			const base = o.lanUrl?.replace(/\/+$/, '');
+			if (!base) return null;
+			groupSlug ??= await api.groupSlug().catch(() => null);
+			return {
+				planner: `${base}/household/mealplan/planner/view`,
+				recipe: groupSlug ? `${base}/g/${encodeURIComponent(groupSlug)}/r/` : null
+			};
+		},
+
+		/**
+		 * Mahlzeit planen (Rezept, Zufall oder nur Text). Mit `replace` wird der alte Eintrag erst
+		 * entfernt, wenn der neue steht – so geht bei einem Fehler nichts verloren.
+		 */
+		async plan(p: {
+			date: string;
+			type: string;
+			recipeId?: string;
+			title?: string;
+			random?: boolean;
+			replace?: number;
+		}) {
+			const e = p.random
+				? await api.randomMealplan(p.date, p.type)
+				: await api.createMealplan({
+						date: p.date,
+						entryType: p.type,
+						...(p.recipeId ? { recipeId: p.recipeId } : { title: p.title ?? '' })
+					});
+			if (p.replace !== undefined) await api.deleteMealplan(p.replace).catch(() => {});
+			mealsChanged();
+			return mealDto(e);
+		},
+
+		async unplan(id: number) {
+			await api.deleteMealplan(id);
+			mealsChanged();
+		},
 		image: (recipeId: string) => api.image(recipeId),
 
 		async addItem(text: string) {

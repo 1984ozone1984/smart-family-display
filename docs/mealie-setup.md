@@ -35,6 +35,16 @@ MEALIE_SHOPPING_LIST=Einkaufsliste
 
 Ohne `MEALIE_SHOPPING_LIST` nimmt die App die älteste Liste. Gibt es keine, legt sie „Einkaufsliste“ an.
 
+Für die Links „In Mealie öffnen“ am Tablet zusätzlich:
+
+```
+MEALIE_LAN_URL=http://<unraid-ip>:9925
+```
+
+Bitte die IP verwenden, nicht `tower.local`: Android 9 (Fire OS 7) löst `.local`-Namen nicht auf.
+In Fully Kiosk öffnen sich Links in einem neuen Fenster nur, wenn dort Pop-ups erlaubt sind
+(Web Browsing Settings → Enable Popups). Sonst öffnet Mealie im selben Fenster, und „Zurück“ führt zur App.
+
 Danach den Stack neu starten. Im Log von `family-dashboard` darf die Warnung `MEALIE_TOKEN fehlt` nicht mehr stehen.
 
 ## 4. Prüfen

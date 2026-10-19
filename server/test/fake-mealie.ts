@@ -21,6 +21,20 @@ export function fakeMealie(token = 'tok') {
 			headers: { 'content-type': 'application/json' }
 		});
 	const notFound = () => json({ detail: 'not found' }, 404);
+	let planId = 100;
+	const plan = (b: Record<string, unknown>, recipe: MRecipe | null) => {
+		const e: MPlanEntry = {
+			id: ++planId,
+			date: String(b.date),
+			entryType: String(b.entryType),
+			title: String(b.title ?? ''),
+			text: '',
+			recipeId: recipe?.id ?? null,
+			recipe
+		};
+		plans.push(e);
+		return e;
+	};
 
 	const fetch = async (input: string | URL | Request, init: RequestInit = {}) => {
 		if (down) throw new TypeError('fetch failed');
@@ -36,6 +50,25 @@ export function fakeMealie(token = 'tok') {
 			const s = url.searchParams.get('start_date') ?? '';
 			const e = url.searchParams.get('end_date') ?? '9999';
 			return json({ items: plans.filter((x) => x.date >= s && x.date <= e) });
+		}
+		if (p === '/api/users/self') return json({ groupSlug: 'home' });
+		if (p === '/api/recipes' && method === 'GET') {
+			const s = (url.searchParams.get('search') ?? '').toLowerCase();
+			return json({ items: recipes.filter((r) => (r.name ?? '').toLowerCase().includes(s)) });
+		}
+		if (p === '/api/households/mealplans' && method === 'POST') {
+			const recipe = recipes.find((r) => r.id === body!.recipeId) ?? null;
+			if (!recipe && !body!.title) return json({ detail: 'recipe_id or title' }, 422);
+			return json(plan(body!, recipe), 201);
+		}
+		if (p === '/api/households/mealplans/random' && method === 'POST') {
+			const recipe = recipes[0];
+			return recipe ? json(plan(body!, recipe)) : notFound();
+		}
+		if ((m = p.match(/^\/api\/households\/mealplans\/(\d+)$/)) && method === 'DELETE') {
+			const i = plans.findIndex((x) => x.id === Number(m![1]));
+			if (i < 0) return notFound();
+			return json(plans.splice(i, 1)[0]);
 		}
 		if ((m = p.match(/^\/api\/recipes\/([^/]+)$/))) {
 			const r = recipes.find((x) => x.slug === decodeURIComponent(m![1]!));

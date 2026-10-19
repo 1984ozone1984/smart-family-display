@@ -1,4 +1,12 @@
-import { api, ApiError, type MealEntry, type Recipe, type ShoppingItem } from './api.ts';
+import {
+	api,
+	ApiError,
+	type MealEntry,
+	type MealieLinks,
+	type Recipe,
+	type RecipeRef,
+	type ShoppingItem
+} from './api.ts';
 import { app } from './app.svelte.ts';
 
 /** off = Mealie nicht eingerichtet, error = gerade nicht erreichbar */
@@ -16,6 +24,7 @@ class MealState {
 	today = $state('');
 	entries = $state<MealEntry[]>([]);
 	mealsStatus = $state<MealieStatus>('loading');
+	links = $state<MealieLinks | null>(null);
 	notice = $state('');
 	#started = false;
 	#noticeTimer: ReturnType<typeof setTimeout> | null = null;
@@ -45,13 +54,17 @@ class MealState {
 	async loadWeek() {
 		const week = this.week;
 		try {
-			const r = await api<{ start: string; today: string; entries: MealEntry[] }>(
-				`/meals${week ? `?week=${week}` : ''}`
-			);
+			const r = await api<{
+				start: string;
+				today: string;
+				entries: MealEntry[];
+				links: MealieLinks | null;
+			}>(`/meals${week ? `?week=${week}` : ''}`);
 			if (this.week !== week) return;
 			this.weekStart = r.start;
 			this.today = r.today;
 			this.entries = r.entries;
+			this.links = r.links;
 			this.mealsStatus = 'ok';
 		} catch (err) {
 			this.mealsStatus = status(err);
@@ -60,6 +73,40 @@ class MealState {
 
 	recipe(slug: string) {
 		return api<{ recipe: Recipe }>(`/recipes/${encodeURIComponent(slug)}`).then((r) => r.recipe);
+	}
+
+	async search(query: string) {
+		const q = query.trim() ? `?search=${encodeURIComponent(query.trim())}` : '';
+		return (await api<{ recipes: RecipeRef[] }>(`/recipes${q}`)).recipes;
+	}
+
+	/**
+	 * Mahlzeit planen: Rezept, Text oder Zufall; `replace` ersetzt einen vorhandenen Eintrag.
+	 * Liefert eine Meldung, wenn es nicht ging.
+	 */
+	async plan(
+		p: { date: string; type: string; replace?: number } & (
+			{ recipeId: string } | { title: string } | { random: true }
+		)
+	): Promise<string | null> {
+		try {
+			await api('/meals', { method: 'POST', json: p });
+			await this.loadWeek();
+			return null;
+		} catch (err) {
+			if (err instanceof ApiError && err.body.error === 'no recipes')
+				return 'Kein passendes Rezept in Mealie (Essensplan-Regeln prüfen).';
+			return 'Das hat nicht geklappt.';
+		}
+	}
+
+	async unplan(id: number) {
+		try {
+			await api(`/meals/${id}`, { method: 'DELETE' });
+		} catch {
+			this.#say('Das hat nicht geklappt.');
+		}
+		await this.loadWeek();
 	}
 
 	#say(msg: string) {

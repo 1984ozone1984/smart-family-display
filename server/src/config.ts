@@ -59,6 +59,8 @@ const schema = z
 		MEALIE_TOKEN: z.string().optional(),
 		// Name der Einkaufsliste in Mealie; leer = älteste vorhandene (oder neu „Einkaufsliste“)
 		MEALIE_SHOPPING_LIST: z.string().optional(),
+		// Adresse der Mealie-Oberfläche im LAN (z. B. http://<server-ip>:9925) für Links am Tablet
+		MEALIE_LAN_URL: z.url().optional(),
 		MEALIE_POLL_SEC: z.coerce.number().int().min(15).default(60),
 		// 32 Byte, base64 (openssl rand -base64 32); verschlüsselt Tokens at rest. Nie ändern!
 		ENCRYPTION_KEY: z
