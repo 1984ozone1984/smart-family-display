@@ -90,14 +90,15 @@ class TaskState {
 	}
 
 	/**
-	 * Heute fällige einmalige Aufgaben, die noch jemand erledigen muss. Am Tablet (LAN) alle,
-	 * sonst nur die der angemeldeten Person. Weggeklickte erscheinen auf dem Gerät nicht wieder.
+	 * Heute fällige oder überfällige einmalige Aufgaben, die noch jemand erledigen muss. Am Tablet
+	 * (LAN) alle, sonst nur die der angemeldeten Person. Weggeklickte erscheinen auf dem Gerät erst
+	 * am nächsten Tag wieder (überfällige also täglich).
 	 */
 	get dueNotice(): Task[] {
 		const me = app.me;
 		return this.tasks.filter(
 			(t) =>
-				t.dueToday &&
+				(t.dueToday || t.overdue) &&
 				!this.seenDue.includes(t.id) &&
 				t.assignees.some((a) => a.status === 'open' && (app.via === 'lan' || a.personId === me?.id))
 		);

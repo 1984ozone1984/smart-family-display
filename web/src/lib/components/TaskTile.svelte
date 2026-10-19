@@ -40,7 +40,7 @@
 	{#if task.overdue}<small class="overdue">überfällig</small>
 	{:else if task.dueToday && status === 'open'}<small class="overdue">heute fällig</small>
 	{:else if task.dueDate && !task.availableFrom && !task.plannedFor && status === 'open'}
-		<small class="due">fällig {fmtDayShort(fromIsoDate(task.dueDate))}</small>
+		<small class="due">zu erledigen bis {fmtDayShort(fromIsoDate(task.dueDate))}</small>
 	{/if}
 </button>
 

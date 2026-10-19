@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { app } from '../app.svelte.ts';
+	import { fmtDayShort, fromIsoDate } from '../dates.ts';
 	import { tasks } from '../tasks.svelte.ts';
 	import Modal from './Modal.svelte';
 
@@ -11,8 +12,8 @@
 			.join(', ');
 </script>
 
-<!-- Hinweis am Fälligkeitstag einmaliger Aufgaben (einmal pro Gerät und Tag wegklicken) -->
-<Modal title="Heute fällig" onclose={() => tasks.dismissDue()}>
+<!-- Hinweis für fällige und überfällige einmalige Aufgaben (einmal pro Gerät und Tag wegklicken) -->
+<Modal title="Jetzt erledigen" onclose={() => tasks.dismissDue()}>
 	<ul>
 		{#each list as t (t.id)}
 			<li>
@@ -21,6 +22,11 @@
 					<strong>{t.title}</strong>
 					<small class="muted"
 						>{names(t.assignees.filter((a) => a.status === 'open').map((a) => a.personId))}</small
+					>
+					<small class="late"
+						>{t.overdue && t.dueDate
+							? `überfällig seit ${fmtDayShort(fromIsoDate(t.dueDate))}`
+							: 'heute fällig'}</small
 					>
 				</span>
 			</li>
@@ -54,6 +60,9 @@
 	}
 	small {
 		font-size: 15px;
+	}
+	.late {
+		color: var(--danger);
 	}
 	button {
 		width: 100%;
