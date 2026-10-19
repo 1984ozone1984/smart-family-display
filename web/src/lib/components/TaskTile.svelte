@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Task } from '../api.ts';
+	import { fmtDayShort, fromIsoDate } from '../dates.ts';
 	import { longpress } from '../longpress.ts';
 
 	let {
@@ -36,7 +37,11 @@
 		{#if task.points}<span class="points">+{task.points}</span>{/if}
 	</span>
 	<span class="title">{task.title}</span>
-	{#if task.overdue}<small class="overdue">überfällig</small>{/if}
+	{#if task.overdue}<small class="overdue">überfällig</small>
+	{:else if task.dueToday && status === 'open'}<small class="overdue">heute fällig</small>
+	{:else if task.dueDate && !task.availableFrom && !task.plannedFor && status === 'open'}
+		<small class="due">fällig {fmtDayShort(fromIsoDate(task.dueDate))}</small>
+	{/if}
 </button>
 
 <style>
@@ -103,6 +108,10 @@
 	}
 	.overdue {
 		color: var(--danger);
+		font-size: 14px;
+	}
+	.due {
+		color: var(--text-muted);
 		font-size: 14px;
 	}
 </style>

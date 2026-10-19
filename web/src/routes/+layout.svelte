@@ -5,10 +5,12 @@
 	import { page } from '$app/state';
 	import { onMount, type Snippet } from 'svelte';
 	import { app } from '#lib/app.svelte.ts';
+	import { isoDate } from '#lib/dates.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
 	import { lists } from '#lib/lists.svelte.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
+	import DueNotice from '#lib/components/DueNotice.svelte';
 	import LoginDialog from '#lib/components/LoginDialog.svelte';
 
 	let { children }: { children: Snippet } = $props();
@@ -35,6 +37,8 @@
 			lists.start();
 		}
 	});
+
+	$effect(() => tasks.dayChanged(isoDate(now)));
 
 	const NAV = [
 		{ path: '/', label: 'Heute' },
@@ -112,6 +116,9 @@
 			onclose={() => (tasks.pendingLogin = null)}
 			ondone={() => tasks.resumeAfterLogin()}
 		/>
+	{/if}
+	{#if tasks.dueNotice.length && !tasks.pendingLogin && !loginOpen}
+		<DueNotice />
 	{/if}
 	{#if tasks.notice || lists.notice}
 		<p class="toast" role="status">{tasks.notice || lists.notice}</p>

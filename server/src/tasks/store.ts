@@ -183,8 +183,9 @@ export function setStatus(db: Db, taskId: number, personId: number, status: Assi
  * Aufgaben, die an `date` angezeigt werden:
  * - aus Routinen: im Zeitraum available_from … due_date (danach verfallen sie)
  * - einmalig mit Datum `date`
- * - nur für heute zusätzlich: einmalige ohne Datum oder überfällige, solange jemand offen ist
- *   oder sie heute erledigt wurden (damit das Häkchen bis zum Abend sichtbar bleibt)
+ * - einmalig, noch offen und erst später fällig: an jedem Tag ab heute bis zur Fälligkeit
+ * - nur für heute zusätzlich: einmalige ohne Datum, überfällige oder künftig fällige, solange
+ *   jemand offen ist oder sie heute erledigt wurden (damit das Häkchen bis zum Abend sichtbar bleibt)
  */
 export function tasksForDate(
 	db: Db,
@@ -197,7 +198,9 @@ export function tasksForDate(
 			`SELECT t.* FROM task t WHERE
 			   (t.available_from IS NOT NULL AND t.available_from <= :date AND t.due_date >= :date)
 			   OR (t.available_from IS NULL AND t.due_date = :date)
-			   OR (:date = :today AND t.available_from IS NULL AND (t.due_date IS NULL OR t.due_date < :today)
+			   OR (:date > :today AND t.available_from IS NULL AND t.due_date > :date
+			       AND EXISTS (SELECT 1 FROM task_assignee a WHERE a.task_id = t.id AND a.status = 'open'))
+			   OR (:date = :today AND t.available_from IS NULL AND (t.due_date IS NULL OR t.due_date <> :today)
 			       AND EXISTS (SELECT 1 FROM task_assignee a WHERE a.task_id = t.id
 			                   AND (a.status = 'open' OR a.done_at >= :start)))
 			 ORDER BY CASE t.time_slot WHEN 'morning' THEN 1 WHEN 'afternoon' THEN 2 WHEN 'evening' THEN 3 ELSE 4 END, t.id`

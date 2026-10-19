@@ -24,7 +24,10 @@ class TaskState {
 	/** Wartet auf PIN der Person, bevor abgehakt wird (Tablet) */
 	pendingLogin = $state<{ task: Task; personId: number } | null>(null);
 	notice = $state('');
+	/** Auf diesem Gerät schon weggeklickte Fälligkeits-Hinweise (Aufgaben-IDs, nur für `today`) */
+	seenDue = $state<number[]>([]);
 	#started = false;
+	#checkedDay = '';
 	#noticeTimer: ReturnType<typeof setTimeout> | null = null;
 
 	start() {
@@ -43,6 +46,8 @@ class TaskState {
 		]);
 		this.tasks = t.tasks;
 		this.today = t.today;
+		this.#checkedDay = t.today;
+		this.seenDue = readSeen(t.today);
 		this.approvals = a.approvals;
 		if (this.day) await this.#loadDay(this.day);
 	}
@@ -67,6 +72,7 @@ class TaskState {
 			requiresApproval: p.requiresApproval,
 			routineId: p.routineId,
 			overdue: false,
+			dueToday: false,
 			assignees: p.assignees.map((personId) => ({ personId, status: 'open', doneAt: null })),
 			plannedFor: date
 		}));
@@ -74,6 +80,36 @@ class TaskState {
 		this.dayTasks = [...r.tasks, ...planned].sort(
 			(a, b) => (a.timeSlot ? order[a.timeSlot] : 4) - (b.timeSlot ? order[b.timeSlot] : 4)
 		);
+	}
+
+	/** Tablet läuft durch: nach Mitternacht einmal neu laden, damit „heute“ stimmt. */
+	dayChanged(localToday: string) {
+		if (!this.#checkedDay || localToday === this.#checkedDay) return;
+		this.#checkedDay = localToday;
+		void this.loadTasks();
+	}
+
+	/**
+	 * Heute fällige einmalige Aufgaben, die noch jemand erledigen muss. Am Tablet (LAN) alle,
+	 * sonst nur die der angemeldeten Person. Weggeklickte erscheinen auf dem Gerät nicht wieder.
+	 */
+	get dueNotice(): Task[] {
+		const me = app.me;
+		return this.tasks.filter(
+			(t) =>
+				t.dueToday &&
+				!this.seenDue.includes(t.id) &&
+				t.assignees.some((a) => a.status === 'open' && (app.via === 'lan' || a.personId === me?.id))
+		);
+	}
+
+	dismissDue() {
+		this.seenDue = [...this.seenDue, ...this.dueNotice.map((t) => t.id)];
+		try {
+			localStorage.setItem(SEEN_KEY, JSON.stringify({ day: this.today, ids: this.seenDue }));
+		} catch {
+			// ohne Speicher erscheint der Hinweis nach dem Neuladen eben noch einmal
+		}
 	}
 
 	async loadRoutines() {
@@ -161,6 +197,20 @@ class TaskState {
 				return 'Abhaken darf nur die Person selbst.';
 			return 'Das hat nicht geklappt.';
 		}
+	}
+}
+
+const SEEN_KEY = 'due-seen';
+
+function readSeen(day: string): number[] {
+	try {
+		const v = JSON.parse(localStorage.getItem(SEEN_KEY) ?? 'null') as {
+			day: string;
+			ids: number[];
+		} | null;
+		return v?.day === day ? v.ids : [];
+	} catch {
+		return [];
 	}
 }
 

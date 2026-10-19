@@ -56,6 +56,8 @@ export type Task = {
 	requiresApproval: boolean;
 	routineId: number | null;
 	overdue: boolean;
+	/** Einmalige Aufgabe, die heute fällig ist */
+	dueToday: boolean;
 	assignees: { personId: number; status: 'open' | 'done' | 'approved'; doneAt: string | null }[];
 	/** Nur im Frontend: geplante Routinen-Aufgabe dieses Tages, noch nicht angelegt */
 	plannedFor?: string;

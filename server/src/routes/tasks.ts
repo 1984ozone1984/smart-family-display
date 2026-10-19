@@ -110,6 +110,7 @@ export async function taskRoutes(app: FastifyInstance, { db, bus, config }: Ctx)
 		requiresApproval: t.requires_approval,
 		routineId: t.routine_id,
 		overdue: !t.available_from && t.due_date !== null && t.due_date < now,
+		dueToday: !t.available_from && t.due_date === now,
 		assignees: assignees
 			.filter((a) => a.task_id === t.id)
 			.map((a) => ({ personId: a.person_id, status: a.status, doneAt: a.done_at }))

@@ -85,6 +85,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Tagesansicht pro Kind mit Fortschritt
 - Heute-Ansicht zeigt die Aufgaben des gewählten Tages; künftige Routinen-Aufgaben erscheinen vorab und lassen sich bis zu 7 Tage im Voraus abhaken (die Aufgabe wird dabei angelegt)
 - Routinen-Aufgaben verfallen nach ihrem Zeitraum (täglich: am Tagesende, wöchentlich: Sonntag) ohne Punkte; einmalige Aufgaben bleiben offen und werden als überfällig markiert
+- Einmalige Aufgaben mit künftigem Datum erscheinen ab heute jeden Tag (mit „fällig …“), bis sie erledigt sind. Am Fälligkeitstag kommt ein Popup „Heute fällig“: am Tablet für alle, am Handy nur für die eigenen Aufgaben, einmal pro Gerät und Tag wegklickbar (Push folgt mit Phase 6)
 - Abhaken/Zurücknehmen nur durch die zuständige Person selbst oder ein Elternteil. Am Tablet: Antippen öffnet das PIN-Pad der Person (vorausgewählt); danach bleibt sie 2 min ohne Bedienung angemeldet und kann weitere eigene Aufgaben ohne PIN abhaken
 - Belohnungen anfragen geht am Tablet ohne PIN (Eltern geben ohnehin frei); Eltern-PIN für geschützte Aktionen (Anlegen, Bestätigen, Freigeben, Bonus/Abzug)
 - Eltern können ebenfalls Aufgaben erhalten und Punkte sammeln

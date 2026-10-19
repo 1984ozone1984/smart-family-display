@@ -66,6 +66,27 @@ describe('Routinen', () => {
 	});
 });
 
+describe('einmalige Aufgaben', () => {
+	it('künftig fällige erscheinen ab heute täglich bis zur Fälligkeit, solange offen', () => {
+		const d = db();
+		d.prepare("INSERT INTO task (id, title, due_date) VALUES (1, 'Formular', '2026-10-22')").run();
+		d.prepare('INSERT INTO task_assignee (task_id, person_id) VALUES (1, 2)').run();
+		const on = (date: string) => tasksForDate(d, date, MON, `${MON}T00:00:00Z`).map((t) => t.title);
+		expect(on(MON)).toEqual(['Formular']);
+		expect(on('2026-10-21')).toEqual(['Formular']);
+		expect(on('2026-10-22')).toEqual(['Formular']);
+		expect(on('2026-10-23')).toEqual([]);
+		expect(on('2026-10-18')).toEqual([]);
+
+		d.prepare(
+			"UPDATE task_assignee SET status = 'done', done_at = '2026-10-19T08:00:00Z' WHERE task_id = 1"
+		).run();
+		expect(on(MON)).toEqual(['Formular']);
+		expect(on('2026-10-21')).toEqual([]);
+		expect(tasksForDate(d, '2026-10-20', '2026-10-20', '2026-10-20T00:00:00Z')).toEqual([]);
+	});
+});
+
 describe('Ledger', () => {
 	it('ist append-only: Ändern und Löschen werden von der DB abgewiesen', () => {
 		const d = db();
