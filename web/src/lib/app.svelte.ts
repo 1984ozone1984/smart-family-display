@@ -7,7 +7,9 @@ const SERVER_EVENTS = [
 	'tasks.changed',
 	'points.changed',
 	'rewards.changed',
-	'lists.changed'
+	'lists.changed',
+	'meals.changed',
+	'shopping.changed'
 ] as const;
 export type ServerEvent = (typeof SERVER_EVENTS)[number];
 /** Am Tablet: angemeldete Person nach dieser Zeit ohne Bedienung wieder abmelden. */

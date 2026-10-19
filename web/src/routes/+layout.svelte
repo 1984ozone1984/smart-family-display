@@ -8,6 +8,7 @@
 	import { isoDate } from '#lib/dates.ts';
 	import { cal } from '#lib/calendar.svelte.ts';
 	import { lists } from '#lib/lists.svelte.ts';
+	import { meals } from '#lib/meals.svelte.ts';
 	import { tasks } from '#lib/tasks.svelte.ts';
 	import Avatar from '#lib/components/Avatar.svelte';
 	import DueNotice from '#lib/components/DueNotice.svelte';
@@ -35,6 +36,7 @@
 			cal.start();
 			tasks.start();
 			lists.start();
+			meals.start();
 		}
 	});
 
@@ -46,6 +48,7 @@
 		{ path: '/agenda', label: 'Agenda' },
 		{ path: '/aufgaben', label: 'Aufgaben' },
 		{ path: '/belohnungen', label: 'Belohnungen' },
+		{ path: '/essen', label: 'Essen' },
 		{ path: '/listen', label: 'Listen' },
 		{ path: '/einstellungen', label: '⚙︎', title: 'Einstellungen' }
 	] as const;
@@ -120,8 +123,8 @@
 	{#if tasks.dueNotice.length && !tasks.pendingLogin && !loginOpen}
 		<DueNotice />
 	{/if}
-	{#if tasks.notice || lists.notice}
-		<p class="toast" role="status">{tasks.notice || lists.notice}</p>
+	{#if tasks.notice || lists.notice || meals.notice}
+		<p class="toast" role="status">{tasks.notice || lists.notice || meals.notice}</p>
 	{/if}
 {/if}
 

@@ -74,6 +74,29 @@ export type PlannedTask = {
 };
 export type ListItem = { id: number; text: string; done: boolean };
 export type FamilyList = { id: number; title: string; icon: string | null; items: ListItem[] };
+/** Eintrag der Mealie-Einkaufsliste (IDs von Mealie) */
+export type ShoppingItem = { id: string; text: string; done: boolean };
+export type MealEntry = {
+	id: number;
+	date: string;
+	/** breakfast, lunch, dinner, side, snack, drink, dessert */
+	type: string;
+	title: string;
+	text: string;
+	recipe: { id: string; slug: string; name: string; image: boolean } | null;
+};
+export type Recipe = {
+	id: string;
+	slug: string;
+	name: string;
+	description: string;
+	image: boolean;
+	yield: string;
+	totalTime: string;
+	prepTime: string;
+	ingredients: { section: string | null; text: string }[];
+	steps: { section: string | null; text: string }[];
+};
 export type Schedule =
 	{ type: 'daily' } | { type: 'weekdays'; days: number[] } | { type: 'weekly' };
 export type Routine = {

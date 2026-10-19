@@ -1,16 +1,47 @@
 <script lang="ts">
-	import type { FamilyList } from '#lib/api.ts';
+	import type { FamilyList, ListItem, ShoppingItem } from '#lib/api.ts';
 	import ListForm from '#lib/components/ListForm.svelte';
 	import { lists } from '#lib/lists.svelte.ts';
+	import { meals } from '#lib/meals.svelte.ts';
 
-	let selectedId = $state<number | null>(null);
+	/** Eigene Liste oder die Einkaufsliste aus Mealie (gleiche Bedienung, ohne Sortieren) */
+	type View = {
+		key: number | 'shopping';
+		title: string;
+		icon: string;
+		items: (ListItem | ShoppingItem)[];
+		list: FamilyList | null;
+	};
+
+	let selectedId = $state<number | 'shopping' | null>(null);
 	let form = $state<FamilyList | 'new' | null>(null);
 	let editing = $state(false);
 	let text = $state('');
-	let drafts = $state<Record<number, string>>({});
+	let drafts = $state<Record<string, string>>({});
 
+	const views = $derived<View[]>([
+		...(meals.shoppingStatus === 'off'
+			? []
+			: [
+					{
+						key: 'shopping' as const,
+						title: 'Einkaufsliste',
+						icon: '🛒',
+						items: meals.shopping,
+						list: null
+					}
+				]),
+		...lists.lists.map((l) => ({
+			key: l.id,
+			title: l.title,
+			icon: l.icon ?? '📝',
+			items: l.items,
+			list: l
+		}))
+	]);
 	// Ohne Auswahl (oder nach dem Löschen) die erste Liste zeigen
-	const current = $derived(lists.lists.find((l) => l.id === selectedId) ?? lists.lists[0] ?? null);
+	const current = $derived(views.find((v) => v.key === selectedId) ?? views[0] ?? null);
+	const shop = $derived(current?.key === 'shopping');
 	// Offene zuerst, abgehakte darunter; beim Bearbeiten die echte Reihenfolge
 	const shown = $derived(
 		!current
@@ -20,9 +51,10 @@
 				: [...current.items.filter((i) => !i.done), ...current.items.filter((i) => i.done)]
 	);
 	const doneCount = $derived(current?.items.filter((i) => i.done).length ?? 0);
+	const listIndex = (id: number) => lists.lists.findIndex((l) => l.id === id);
 
-	function select(id: number) {
-		selectedId = id;
+	function select(key: number | 'shopping') {
+		selectedId = key;
 		editing = false;
 	}
 
@@ -31,14 +63,30 @@
 		if (!current || !text.trim()) return;
 		const t = text.trim();
 		text = '';
-		await lists.add(current.id, t);
+		await (current.list ? lists.add(current.list.id, t) : meals.add(t));
 	}
 
-	async function saveText(itemId: number) {
-		const t = drafts[itemId]?.trim();
-		const item = current?.items.find((i) => i.id === itemId);
-		if (!current || !item || !t || t === item.text) return;
-		await lists.edit(current.id, itemId, t);
+	function toggle(item: ListItem | ShoppingItem) {
+		if (current?.list) void lists.toggle(current.list.id, item as ListItem);
+		else void meals.toggle(item as ShoppingItem);
+	}
+
+	function remove(item: ListItem | ShoppingItem) {
+		if (current?.list) void lists.remove(current.list.id, item.id as number);
+		else void meals.remove(item.id as string);
+	}
+
+	function clearDone() {
+		if (current?.list) void lists.clearDone(current.list.id);
+		else void meals.clearDone();
+	}
+
+	async function saveText(item: ListItem | ShoppingItem) {
+		const t = drafts[item.id]?.trim();
+		if (!current || !t || t === item.text) return;
+		await (current.list
+			? lists.edit(current.list.id, item.id as number, t)
+			: meals.edit(item.id as string, t));
 	}
 
 	function startEdit() {
@@ -49,24 +97,25 @@
 
 <div class="page">
 	<aside class="overview" aria-label="Listen">
-		{#each lists.lists as l, i (l.id)}
-			<div class="entry" class:active={current?.id === l.id}>
-				<button class="pick" onclick={() => select(l.id)}>
-					<span class="icon" aria-hidden="true">{l.icon ?? '📝'}</span>
-					<span class="name">{l.title}</span>
-					<span class="count">{l.items.filter((x) => !x.done).length}</span>
+		{#each views as v (v.key)}
+			<div class="entry" class:active={current?.key === v.key}>
+				<button class="pick" onclick={() => select(v.key)}>
+					<span class="icon" aria-hidden="true">{v.icon}</span>
+					<span class="name">{v.title}</span>
+					<span class="count">{v.items.filter((x) => !x.done).length}</span>
 				</button>
-				{#if editing && current?.id === l.id}
+				{#if editing && current?.key === v.key && v.list}
+					{@const i = listIndex(v.list.id)}
 					<span class="order">
 						<button
 							aria-label="Liste nach oben"
 							disabled={i === 0}
-							onclick={() => lists.moveList(l.id, i - 1)}>↑</button
+							onclick={() => lists.moveList(v.list!.id, i - 1)}>↑</button
 						>
 						<button
 							aria-label="Liste nach unten"
 							disabled={i === lists.lists.length - 1}
-							onclick={() => lists.moveList(l.id, i + 1)}>↓</button
+							onclick={() => lists.moveList(v.list!.id, i + 1)}>↓</button
 						>
 					</span>
 				{/if}
@@ -78,16 +127,22 @@
 	<section class="card list">
 		{#if current}
 			<header>
-				<h1><span aria-hidden="true">{current.icon ?? '📝'}</span> {current.title}</h1>
+				<h1><span aria-hidden="true">{current.icon}</span> {current.title}</h1>
 				<div class="tools">
 					{#if editing}
-						<button class="btn" onclick={() => (form = current)}>Name & Symbol</button>
+						{#if current.list}
+							<button class="btn" onclick={() => (form = current.list)}>Name & Symbol</button>
+						{/if}
 						<button class="btn primary" onclick={() => (editing = false)}>Fertig</button>
 					{:else}
 						<button class="btn" onclick={startEdit}>Bearbeiten</button>
 					{/if}
 				</div>
 			</header>
+
+			{#if shop && meals.shoppingStatus === 'error'}
+				<p class="muted">Mealie ist gerade nicht erreichbar.</p>
+			{/if}
 
 			{#if !editing}
 				<form class="add" onsubmit={add}>
@@ -110,34 +165,29 @@
 							<input
 								type="text"
 								bind:value={drafts[item.id]}
-								onblur={() => saveText(item.id)}
+								onblur={() => saveText(item)}
 								onkeydown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
 								maxlength="200"
 								aria-label="Eintrag bearbeiten"
 							/>
 							<span class="order">
-								<button
-									aria-label="Nach oben"
-									disabled={i === 0}
-									onclick={() => lists.move(current.id, item.id, i - 1)}>↑</button
-								>
-								<button
-									aria-label="Nach unten"
-									disabled={i === shown.length - 1}
-									onclick={() => lists.move(current.id, item.id, i + 1)}>↓</button
-								>
-								<button
-									class="del"
-									aria-label="Löschen"
-									onclick={() => lists.remove(current.id, item.id)}>✕</button
-								>
+								{#if current.list}
+									{@const listId = current.list.id}
+									<button
+										aria-label="Nach oben"
+										disabled={i === 0}
+										onclick={() => lists.move(listId, item.id as number, i - 1)}>↑</button
+									>
+									<button
+										aria-label="Nach unten"
+										disabled={i === shown.length - 1}
+										onclick={() => lists.move(listId, item.id as number, i + 1)}>↓</button
+									>
+								{/if}
+								<button class="del" aria-label="Löschen" onclick={() => remove(item)}>✕</button>
 							</span>
 						{:else}
-							<button
-								class="item"
-								aria-pressed={item.done}
-								onclick={() => lists.toggle(current.id, item)}
-							>
+							<button class="item" aria-pressed={item.done} onclick={() => toggle(item)}>
 								<span class="box" aria-hidden="true">{item.done ? '✓' : ''}</span>
 								<span class="text">{item.text}</span>
 							</button>
@@ -149,7 +199,7 @@
 			</ul>
 
 			{#if !editing && doneCount}
-				<button class="btn clear" onclick={() => lists.clearDone(current.id)}>
+				<button class="btn clear" onclick={clearDone}>
 					{doneCount} erledigte entfernen
 				</button>
 			{/if}
