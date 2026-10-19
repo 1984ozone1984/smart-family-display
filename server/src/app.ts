@@ -17,11 +17,14 @@ import type { GoogleAccounts } from './google/accounts.ts';
 import type { CalendarApi } from './google/calendar-api.ts';
 import { GoogleError } from './google/errors.ts';
 import type { OAuth } from './google/oauth.ts';
+import type { MealieApi } from './mealie/client.ts';
+import { createMealieService, type MealieService } from './mealie/service.ts';
 import { calendarRoutes } from './routes/calendars.ts';
 import { eventRoutes } from './routes/events.ts';
 import { googleRoutes } from './routes/google.ts';
 import { healthRoutes } from './routes/health.ts';
 import { listRoutes } from './routes/lists.ts';
+import { mealRoutes } from './routes/meals.ts';
 import { personRoutes } from './routes/persons.ts';
 import { rewardRoutes } from './routes/rewards.ts';
 import { sessionRoutes } from './routes/session.ts';
@@ -32,6 +35,7 @@ import { taskRoutes } from './routes/tasks.ts';
 declare module 'fastify' {
 	interface FastifyInstance {
 		sync: Sync;
+		mealie: MealieService | null;
 	}
 	interface FastifyRequest {
 		via: Via;
@@ -54,6 +58,8 @@ export type AppDeps = {
 	lockout?: Lockout;
 	/** null = Google nicht konfiguriert */
 	google?: GoogleDeps | null;
+	/** null = Mealie nicht konfiguriert */
+	mealie?: MealieApi | null;
 	logger?: boolean;
 };
 
@@ -65,6 +71,7 @@ export type Ctx = {
 	google: GoogleDeps | null;
 	sync: Sync;
 	calendars: CalendarService;
+	mealie: MealieService | null;
 };
 
 const UNGUARDED = ['/api/v1/health'];
@@ -103,7 +110,15 @@ export async function buildApp(deps: AppDeps) {
 		lockout: deps.lockout ?? createLockout(),
 		google,
 		sync,
-		calendars: createCalendarService({ db: deps.db, bus: deps.bus, tz, apiFor, sync })
+		calendars: createCalendarService({ db: deps.db, bus: deps.bus, tz, apiFor, sync }),
+		mealie: deps.mealie
+			? createMealieService({
+					api: deps.mealie,
+					bus: deps.bus,
+					tz,
+					listName: deps.config.MEALIE_SHOPPING_LIST
+				})
+			: null
 	};
 	const decide = createAccessPolicy({
 		publicHost: deps.config.PUBLIC_HOST,
@@ -114,6 +129,7 @@ export async function buildApp(deps: AppDeps) {
 
 	await app.register(cookie);
 	app.decorate('sync', sync);
+	app.decorate('mealie', ctx.mealie);
 	app.decorateRequest('via', 'lan');
 	app.decorateRequest('accessEmail', null);
 	app.decorateRequest('person', null);
@@ -149,6 +165,7 @@ export async function buildApp(deps: AppDeps) {
 			await taskRoutes(api, ctx);
 			await rewardRoutes(api, ctx);
 			await listRoutes(api, ctx);
+			await mealRoutes(api, ctx);
 		},
 		{ prefix: '/api/v1' }
 	);

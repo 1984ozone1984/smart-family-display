@@ -31,7 +31,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 | Komponente | Wo | Erreichbar |
 |---|---|---|
 | `family-dashboard` (App + API, Image `kommandozentrale`) | Unraid Docker | LAN direkt + `https://<sub>.<domain>` über Tunnel |
-| `mealie` | Unraid Docker | nur intern (Docker-Netz) |
+| `mealie` | Unraid Docker | App greift intern zu (Docker-Netz); Oberfläche zur Rezeptpflege nur per LAN-Port, nie über den Tunnel |
 | `cloudflared` | bestehender LXC auf anderem Server im LAN | ausgehend zu Cloudflare; erreicht die App über `<UNRAID-IP>:8470` |
 
 - Persistenz: Share `/mnt/user/family-dashboard/` (SQLite-DB, Uploads), Mealie: `/mnt/user/family-dashboard-mealie/`
@@ -107,7 +107,8 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Wochenansicht des Mealie-Mealplans (Frühstück/Mittag/Abend)
 - Rezept-Detail (Zutaten, Schritte) lesend anzeigen
 - Aktion „Zutaten der Woche auf Einkaufsliste“ (Mealie-Funktion)
-- Rezeptpflege erfolgt in Mealie selbst
+- Rezeptpflege erfolgt in Mealie selbst (Oberfläche nur im LAN)
+- Änderungen direkt in Mealie (Plan, Einkaufsliste) fragt der Server regelmäßig ab und meldet sie per SSE (`meals.changed`, `shopping.changed`)
 
 ### 5.6 Erinnerungen
 - Pro Termin/Aufgabe: Zeitpunkt(e) vorher
@@ -156,7 +157,7 @@ REST unter `/api/v1`, JSON. Echtzeit unter `/api/v1/events/stream` (SSE).
 | Punkte | `GET /points`, `GET /points/:person`, `POST /points` (nur Eltern) |
 | Belohnungen | `GET/POST /rewards`, `PATCH /rewards/:id`, `POST /rewards/:id/redeem`, `GET /redemptions`, `POST /redemptions/:id/decide`, `POST /redemptions/:id/cancel` |
 | Listen | `GET/POST/PATCH/DELETE /lists`, `/lists/:id/items` |
-| Essen | `GET /meals?week`, `GET /recipes/:slug`, `GET/PATCH /shopping` (Proxy zu Mealie) |
+| Essen | `GET /meals?week`, `POST /meals/shopping`, `GET /recipes/:slug`, `GET /recipes/:id/image`, `GET /shopping`, `POST /shopping/items`, `PATCH/DELETE /shopping/items/:id`, `POST /shopping/clear-done` (Proxy zu Mealie) |
 | Push | `POST /push/subscribe` |
 
 ## 8. Sicherheit

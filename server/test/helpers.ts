@@ -9,6 +9,7 @@ import { loadConfig } from '../src/config.ts';
 import { createCrypto } from '../src/crypto.ts';
 import { migrate, openDb } from '../src/db/index.ts';
 import { createEventBus } from '../src/events/bus.ts';
+import type { MealieApi } from '../src/mealie/client.ts';
 import type { FakeGoogle } from './fake-google.ts';
 
 export const TEAM = 'https://team.example.cloudflareaccess.com';
@@ -56,7 +57,9 @@ export function googleDeps(fake: FakeGoogle): GoogleDeps {
 	};
 }
 
-export async function makeApp(opts: { lanSubnets?: string; google?: FakeGoogle } = {}) {
+export async function makeApp(
+	opts: { lanSubnets?: string; google?: FakeGoogle; mealie?: MealieApi } = {}
+) {
 	const config = loadConfig({
 		DATA_DIR: mkdtempSync(join(tmpdir(), 'kz-test-')),
 		PUBLIC_HOST,
@@ -76,7 +79,8 @@ export async function makeApp(opts: { lanSubnets?: string; google?: FakeGoogle }
 		db,
 		bus,
 		verify,
-		google: opts.google ? googleDeps(opts.google) : null
+		google: opts.google ? googleDeps(opts.google) : null,
+		mealie: opts.mealie ?? null
 	});
 	return { app, db, bus, sign, config };
 }

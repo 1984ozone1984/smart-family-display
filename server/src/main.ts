@@ -9,6 +9,7 @@ import { createCrypto } from './crypto.ts';
 import { createEventBus } from './events/bus.ts';
 import { createGoogleAccounts } from './google/accounts.ts';
 import { createOAuth } from './google/oauth.ts';
+import { createMealieApi } from './mealie/client.ts';
 import { generateRoutineTasks } from './tasks/routines.ts';
 import { todayIn } from './time.ts';
 
@@ -36,7 +37,11 @@ if (config.GOOGLE_CLIENT_ID && config.GOOGLE_CLIENT_SECRET && config.ENCRYPTION_
 	google = { oauth, crypto, accounts: createGoogleAccounts({ db, bus, crypto, oauth }) };
 }
 
-const app = await buildApp({ config, db, bus, verify, google, logger: true });
+const mealie = config.MEALIE_TOKEN
+	? createMealieApi({ url: config.MEALIE_URL, token: config.MEALIE_TOKEN })
+	: null;
+
+const app = await buildApp({ config, db, bus, verify, google, mealie, logger: true });
 if (ran.length) app.log.info({ migrations: ran }, 'Migrationen angewendet');
 if (!verify)
 	app.log.warn('Cloudflare Access nicht konfiguriert: öffentlicher Zugang gesperrt, nur LAN');
@@ -46,6 +51,26 @@ else {
 	const run = () => void app.sync.syncAll();
 	setTimeout(run, 5_000).unref();
 	setInterval(run, config.CALENDAR_SYNC_MIN * 60_000).unref();
+}
+
+// Mealie: Änderungen, die direkt in Mealie gemacht wurden, an die Geräte melden
+if (!app.mealie) app.log.warn('MEALIE_TOKEN fehlt: Essen und Einkaufsliste deaktiviert');
+else {
+	const m = app.mealie;
+	let failing = false;
+	const poll = () =>
+		m.poll().then(
+			() => {
+				if (failing) app.log.info('Mealie wieder erreichbar');
+				failing = false;
+			},
+			(err: unknown) => {
+				if (!failing) app.log.warn({ err: String(err) }, 'Mealie nicht erreichbar');
+				failing = true;
+			}
+		);
+	setTimeout(() => void poll(), 5_000).unref();
+	setInterval(() => void poll(), config.MEALIE_POLL_SEC * 1000).unref();
 }
 
 // Routinen: heutige Aufgaben anlegen – beim Start und regelmäßig (deckt den Tageswechsel ab)

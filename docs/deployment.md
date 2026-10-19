@@ -3,7 +3,7 @@
 ```
 Handy ──HTTPS──▶ Cloudflare Access ──▶ Tunnel ──▶ cloudflared (LXC, anderer Server)
                                                        │ HTTP im LAN
-Tablet ──────────── HTTP im LAN ─────────────────────▶ Unraid :8470  family-dashboard ──▶ family-dashboard-mealie (nur Docker-Netz)
+Tablet ──────────── HTTP im LAN ─────────────────────▶ Unraid :8470  family-dashboard ──▶ family-dashboard-mealie (Docker-Netz; Oberfläche nur im LAN :9925)
 ```
 
 Platzhalter in dieser Anleitung:

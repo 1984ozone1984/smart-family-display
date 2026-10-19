@@ -29,8 +29,11 @@ services:
       TZ: ${TZ:-Europe/Berlin}
     volumes:
       - /mnt/user/family-dashboard-mealie:/app/data
+    # Port nur im LAN für die Rezeptpflege (nie über den Tunnel freigeben).
+    # Die App selbst spricht Mealie intern unter http://family-dashboard-mealie:9000 an.
+    ports:
+      - '${MEALIE_PORT:-9925}:9000'
     networks: [kz]
-    # Kein Port nach außen: die App spricht Mealie intern unter http://family-dashboard-mealie:9000 an.
 
 networks:
   kz: {}

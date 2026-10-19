@@ -53,6 +53,13 @@ const schema = z
 		// Standard: https://<PUBLIC_HOST>/api/v1/google/callback
 		GOOGLE_REDIRECT_URI: z.url().optional(),
 		CALENDAR_SYNC_MIN: z.coerce.number().positive().default(3),
+
+		// Mealie (nur intern erreichbar); ohne Token ist „Essen“ deaktiviert
+		MEALIE_URL: z.url().default('http://family-dashboard-mealie:9000'),
+		MEALIE_TOKEN: z.string().optional(),
+		// Name der Einkaufsliste in Mealie; leer = älteste vorhandene (oder neu „Einkaufsliste“)
+		MEALIE_SHOPPING_LIST: z.string().optional(),
+		MEALIE_POLL_SEC: z.coerce.number().int().min(15).default(60),
 		// 32 Byte, base64 (openssl rand -base64 32); verschlüsselt Tokens at rest. Nie ändern!
 		ENCRYPTION_KEY: z
 			.string()
