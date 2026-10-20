@@ -18,8 +18,8 @@
 
 	let open = $state<MealEntry | null>(null);
 	let confirm = $state(false);
-	/** Planen: Tag und Mahlzeit vom Ort des Drückens, ggf. vorhandener Eintrag zum Ersetzen */
-	let planning = $state<{ date: string; type: string; entry?: MealEntry } | null>(null);
+	/** Planen: Tag und Mahlzeit vom Ort des Drückens */
+	let planning = $state<{ date: string; type: string } | null>(null);
 
 	onMount(() => void meals.loadWeek());
 
@@ -92,7 +92,7 @@
 								<button
 									class="meal"
 									onclick={() => (open = e)}
-									{@attach longpress(() => (planning = { date: d, type: e.type, entry: e }))}
+									{@attach longpress(() => (planning = { date: d, type: e.type }))}
 								>
 									{#if e.recipe.image}
 										<img src="/api/v1/recipes/{e.recipe.id}/image" alt="" loading="lazy" />
@@ -102,8 +102,8 @@
 							{:else}
 								<button
 									class="meal note"
-									onclick={() => (planning = { date: d, type: e.type, entry: e })}
-									{@attach longpress(() => (planning = { date: d, type: e.type, entry: e }))}
+									onclick={() => (planning = { date: d, type: e.type })}
+									{@attach longpress(() => (planning = { date: d, type: e.type }))}
 								>
 									<span>{e.title || e.text}</span>
 								</button>
@@ -131,12 +131,7 @@
 {/if}
 
 {#if planning}
-	<MealPlanDialog
-		date={planning.date}
-		type={planning.type}
-		entry={planning.entry ?? null}
-		onclose={() => (planning = null)}
-	/>
+	<MealPlanDialog date={planning.date} type={planning.type} onclose={() => (planning = null)} />
 {/if}
 
 {#if confirm}
