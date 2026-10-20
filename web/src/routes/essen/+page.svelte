@@ -126,6 +126,7 @@
 		slug={open.recipe.slug}
 		title={open.title}
 		mealieUrl={meals.links?.recipe ? meals.links.recipe + open.recipe.slug : null}
+		onremove={() => meals.unplan(open!.id)}
 		onclose={() => (open = null)}
 	/>
 {/if}

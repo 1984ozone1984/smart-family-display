@@ -7,17 +7,29 @@
 		slug,
 		title,
 		mealieUrl = null,
+		onremove,
 		onclose
 	}: {
 		slug: string;
 		title: string;
 		/** Link zum Rezept in der Mealie-Oberfläche (nur im LAN) */
 		mealieUrl?: string | null;
+		/** Entfernt den Eintrag aus dem Essensplan (das Rezept bleibt in Mealie) */
+		onremove?: () => Promise<void>;
 		onclose: () => void;
 	} = $props();
 
 	let recipe = $state<Recipe | null>(null);
 	let failed = $state(false);
+	let busy = $state(false);
+
+	async function remove() {
+		if (!onremove) return;
+		busy = true;
+		await onremove();
+		busy = false;
+		onclose();
+	}
 
 	$effect(() => {
 		recipe = null;
@@ -73,6 +85,9 @@
 			<!-- eslint-disable-next-line svelte/no-navigation-without-resolve -- externe Mealie-Adresse -->
 			<a class="btn mealie" href={mealieUrl} target="_blank" rel="noopener">In Mealie bearbeiten</a>
 		{/if}
+	{/if}
+	{#if onremove}
+		<button class="btn danger remove" disabled={busy} onclick={remove}>🗑 Eintrag löschen</button>
 	{/if}
 </Modal>
 
@@ -133,6 +148,12 @@
 		background: var(--surface-2);
 		color: inherit;
 		text-decoration: none;
+	}
+	.remove {
+		width: 100%;
+		margin-top: 12px;
+		background: var(--danger);
+		color: #fff;
 	}
 	li.section {
 		padding-top: 12px;

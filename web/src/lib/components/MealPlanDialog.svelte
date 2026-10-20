@@ -92,11 +92,8 @@
 			{#each planned as e (e.id)}
 				<li>
 					<span>{e.title || e.text}</span>
-					<button
-						class="del"
-						disabled={busy}
-						onclick={() => remove(e.id)}
-						aria-label="{e.title || e.text} entfernen">✕</button
+					<button class="btn danger" disabled={busy} onclick={() => remove(e.id)}
+						>🗑 Eintrag löschen</button
 					>
 				</li>
 			{/each}
@@ -161,25 +158,23 @@
 		margin: 0 0 8px;
 		padding: 0;
 		display: flex;
-		flex-wrap: wrap;
+		flex-direction: column;
 		gap: 6px;
 	}
 	.planned li {
 		display: flex;
 		align-items: center;
-		gap: 4px;
-		padding-left: 12px;
-		border-radius: 999px;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 6px 6px 6px 14px;
+		border-radius: 12px;
 		background: var(--surface-2);
 		font-weight: 600;
 	}
-	.del {
-		min-width: 40px;
-		min-height: 40px;
-		border-radius: 999px;
-		background: none;
-		color: var(--danger);
-		font-size: 18px;
+	.btn.danger {
+		flex-shrink: 0;
+		background: var(--danger);
+		color: #fff;
 	}
 	.types {
 		display: flex;
