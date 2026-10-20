@@ -108,7 +108,7 @@ Jede Person hat Name, Farbe, Avatar (Foto) und eine 4-stellige PIN.
 - Rezept-Detail (Zutaten, Schritte) lesend anzeigen
 - Aktion „Zutaten der Woche auf Einkaufsliste“ (Mealie-Funktion)
 - Rezeptpflege erfolgt in Mealie selbst (Oberfläche nur im LAN). Im LAN (Tablet) gibt es Links „In Mealie öffnen“ (Essensplan) und „In Mealie bearbeiten“ (Rezept), wenn `MEALIE_LAN_URL` gesetzt ist
-- Planen in der App: langes Drücken auf Tag + Mahlzeit (leere Mahlzeit: Antippen) öffnet „Essen planen“ mit Rezeptsuche, „Zufällig“ (nach den Essensplan-Regeln in Mealie) oder nur Text. Mehrere Einträge pro Mahlzeit sind möglich (z. B. Hauptspeise, Beilage, Sauce): Neues kommt dazu und ersetzt nichts. Der Dialog zeigt, was schon geplant ist; entfernt wird nur über den eigenen ✕-Knopf. Langes Drücken auf einen Eintrag öffnet denselben Dialog. Gespeichert wird in Mealie. Am Tablet ohne PIN, über das Handy jede angemeldete Person
+- Planen in der App: langes Drücken auf Tag + Mahlzeit (leere Mahlzeit: Antippen) öffnet „Essen planen“ mit Rezeptsuche, „Zufällig“ (nach den Essensplan-Regeln in Mealie) oder nur Text. Mehrere Einträge pro Mahlzeit sind möglich (z. B. Hauptspeise, Beilage, Sauce): Neues kommt dazu und ersetzt nichts. Der Dialog zeigt, was schon geplant ist; jeder Eintrag hat einen eigenen Knopf „Eintrag löschen“. Den gibt es auch im Rezept-Dialog, der sich beim Antippen eines Gerichts öffnet. Langes Drücken auf einen Eintrag öffnet denselben Dialog. Gespeichert wird in Mealie. Am Tablet ohne PIN, über das Handy jede angemeldete Person
 - Änderungen direkt in Mealie (Plan, Einkaufsliste) fragt der Server regelmäßig ab und meldet sie per SSE (`meals.changed`, `shopping.changed`)
 
 ### 5.6 Erinnerungen
